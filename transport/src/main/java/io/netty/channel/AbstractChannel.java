@@ -642,6 +642,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void close(final ChannelPromise promise) {
+            // 判断是否在 EventLoop 的线程中。
             assertEventLoop();
 
             ClosedChannelException closedChannelException = new ClosedChannelException();
