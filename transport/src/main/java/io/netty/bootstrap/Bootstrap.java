@@ -70,7 +70,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      * @param resolver the {@link NameResolver} for this {@code Bootstrap}; may be {@code null}, in which case a default
      *                 resolver will be used
      *
-     * @see io.netty.resolver.DefaultAddressResolverGroup
+     * @see DefaultAddressResolverGroup
      */
     @SuppressWarnings("unchecked")
     public Bootstrap resolver(AddressResolverGroup<?> resolver) {
