@@ -27,6 +27,7 @@ import static io.netty.util.concurrent.AbstractEventExecutor.*;
 
 
 /**
+ * EventExecutor （事件执行器）的分组抽象类
  * Abstract base class for {@link EventExecutorGroup} implementations.
  */
 public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
