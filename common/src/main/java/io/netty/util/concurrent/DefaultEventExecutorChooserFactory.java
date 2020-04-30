@@ -53,6 +53,9 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
          * 自增序列
          */
         private final AtomicInteger idx = new AtomicInteger();
+        /**
+         * EventExecutor 数组
+         */
         private final EventExecutor[] executors;
 
         PowerOfTwoEventExecutorChooser(EventExecutor[] executors) {
@@ -66,7 +69,13 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     }
 
     private static final class GenericEventExecutorChooser implements EventExecutorChooser {
+        /**
+         * 自增序列
+         */
         private final AtomicInteger idx = new AtomicInteger();
+        /**
+         * EventExecutor 数组
+         */
         private final EventExecutor[] executors;
 
         GenericEventExecutorChooser(EventExecutor[] executors) {
