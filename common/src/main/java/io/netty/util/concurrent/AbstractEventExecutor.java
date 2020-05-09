@@ -34,10 +34,22 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractEventExecutor extends AbstractExecutorService implements EventExecutor {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractEventExecutor.class);
 
+    /**
+     * EventLoop 优雅关闭
+     */
     static final long DEFAULT_SHUTDOWN_QUIET_PERIOD = 2;
+    /**
+     * 默认关闭超时 单位秒
+     */
     static final long DEFAULT_SHUTDOWN_TIMEOUT = 15;
 
+    /**
+     * 所属 EventExecutorGroup
+     */
     private final EventExecutorGroup parent;
+    /**
+     * EventExecutor 数组，只包含自己，用于迭代 {@link #iterator()}
+     */
     private final Collection<EventExecutor> selfCollection = Collections.<EventExecutor>singleton(this);
 
     protected AbstractEventExecutor() {
