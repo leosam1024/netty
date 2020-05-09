@@ -26,12 +26,15 @@ final class PooledUnsafeHeapByteBuf extends PooledHeapByteBuf {
             new ObjectCreator<PooledUnsafeHeapByteBuf>() {
         @Override
         public PooledUnsafeHeapByteBuf newObject(Handle<PooledUnsafeHeapByteBuf> handle) {
+            // 真正创建 PooledUnsafeHeapByteBuf 对象
             return new PooledUnsafeHeapByteBuf(handle, 0);
         }
     });
 
     static PooledUnsafeHeapByteBuf newUnsafeInstance(int maxCapacity) {
+        // 从 Recycler 的对象池中获得 PooledUnsafeHeapByteBuf 对象
         PooledUnsafeHeapByteBuf buf = RECYCLER.get();
+        // 重置 PooledUnsafeHeapByteBuf 的属性
         buf.reuse(maxCapacity);
         return buf;
     }

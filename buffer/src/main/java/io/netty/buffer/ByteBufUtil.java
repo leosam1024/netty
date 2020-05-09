@@ -73,10 +73,12 @@ public final class ByteBufUtil {
     static final ByteBufAllocator DEFAULT_ALLOCATOR;
 
     static {
+        // 读取 ByteBufAllocator 配置
         String allocType = SystemPropertyUtil.get(
                 "io.netty.allocator.type", PlatformDependent.isAndroid() ? "unpooled" : "pooled");
         allocType = allocType.toLowerCase(Locale.US).trim();
 
+        // 读取 ByteBufAllocator 对象
         ByteBufAllocator alloc;
         if ("unpooled".equals(allocType)) {
             alloc = UnpooledByteBufAllocator.DEFAULT;
@@ -1172,6 +1174,9 @@ public final class ByteBufUtil {
 
     static final class ThreadLocalUnsafeDirectByteBuf extends UnpooledUnsafeDirectByteBuf {
 
+        /**
+         * Recycler 对象
+         */
         private static final ObjectPool<ThreadLocalUnsafeDirectByteBuf> RECYCLER =
                 ObjectPool.newPool(new ObjectCreator<ThreadLocalUnsafeDirectByteBuf>() {
                     @Override
@@ -1181,7 +1186,9 @@ public final class ByteBufUtil {
                 });
 
         static ThreadLocalUnsafeDirectByteBuf newInstance() {
+            // 从 RECYCLER 中，获得 ThreadLocalUnsafeDirectByteBuf 对象
             ThreadLocalUnsafeDirectByteBuf buf = RECYCLER.get();
+            // 初始化
             buf.resetRefCnt();
             return buf;
         }
@@ -1230,9 +1237,12 @@ public final class ByteBufUtil {
         @Override
         protected void deallocate() {
             if (capacity() > THREAD_LOCAL_BUFFER_SIZE) {
+                // 释放
                 super.deallocate();
             } else {
+                // 清空
                 clear();
+                // 回收对象
                 handle.recycle(this);
             }
         }

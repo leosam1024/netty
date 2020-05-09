@@ -24,6 +24,9 @@ import io.netty.util.internal.ReferenceCountUpdater;
  * Abstract base class for {@link ByteBuf} implementations that count references.
  */
 public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
+    /**
+     * {@link #refCnt} 的更新器
+     */
     private static final long REFCNT_FIELD_OFFSET =
             ReferenceCountUpdater.getUnsafeOffset(AbstractReferenceCountedByteBuf.class, "refCnt");
     private static final AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> AIF_UPDATER =
@@ -46,6 +49,7 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
     private volatile int refCnt = updater.initialValue();
 
     protected AbstractReferenceCountedByteBuf(int maxCapacity) {
+        // 设置最大容量
         super(maxCapacity);
     }
 
@@ -62,6 +66,7 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
     }
 
     /**
+     * 直接修改 refCnt
      * An unsafe operation intended for use by a subclass that sets the reference count of the buffer directly
      */
     protected final void setRefCnt(int refCnt) {
@@ -107,6 +112,7 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
 
     private boolean handleRelease(boolean result) {
         if (result) {
+            // 释放
             deallocate();
         }
         return result;

@@ -40,10 +40,17 @@ import java.nio.charset.Charset;
 public final class EmptyByteBuf extends ByteBuf {
 
     static final int EMPTY_BYTE_BUF_HASH_CODE = 1;
+    /**
+     * ByteBuf 对象
+     */
     private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocateDirect(0);
+    /**
+     * 内存地址
+     */
     private static final long EMPTY_BYTE_BUFFER_ADDRESS;
 
     static {
+        // 初始化 EMPTY_BYTE_BUFFER_ADDRESS
         long emptyByteBufferAddress = 0;
         try {
             if (PlatformDependent.hasUnsafe()) {
@@ -58,6 +65,11 @@ public final class EmptyByteBuf extends ByteBuf {
     private final ByteBufAllocator alloc;
     private final ByteOrder order;
     private final String str;
+    /**
+     * 修改字节序后，产生的 ByteBuf 对象
+     *
+     * @see #order(ByteOrder)
+     */
     private EmptyByteBuf swapped;
 
     public EmptyByteBuf(ByteBufAllocator alloc) {

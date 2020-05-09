@@ -26,8 +26,20 @@ import java.nio.ByteBuffer;
  */
 public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
+    /**
+     * Metric
+     */
     private final UnpooledByteBufAllocatorMetric metric = new UnpooledByteBufAllocatorMetric();
+    /**
+     * 是否禁用内存泄露检测功能
+     */
     private final boolean disableLeakDetector;
+    /**
+     * 不使用 `io.netty.util.internal.Cleaner` 释放 Direct ByteBuf
+     *
+     * @see UnpooledUnsafeNoCleanerDirectByteBuf
+     * @see InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf
+     */
     private final boolean noCleaner;
 
     /**
@@ -56,7 +68,8 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
      *                            direct buffers when not explicit released.
      */
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector) {
-        this(preferDirect, disableLeakDetector, PlatformDependent.useDirectBufferNoCleaner());
+
+        this(preferDirect, disableLeakDetector, PlatformDependent.useDirectBufferNoCleaner() /** 返回 true **/);
     }
 
     /**
@@ -73,8 +86,8 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector, boolean tryNoCleaner) {
         super(preferDirect);
         this.disableLeakDetector = disableLeakDetector;
-        noCleaner = tryNoCleaner && PlatformDependent.hasUnsafe()
-                && PlatformDependent.hasDirectBufferNoCleanerConstructor();
+        noCleaner = tryNoCleaner && PlatformDependent.hasUnsafe() /** 返回 true **/
+                && PlatformDependent.hasDirectBufferNoCleanerConstructor()  /** 返回 true **/;
     }
 
     @Override
@@ -119,18 +132,22 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     }
 
     void incrementDirect(int amount) {
+        // 增加 Direct
         metric.directCounter.add(amount);
     }
 
     void decrementDirect(int amount) {
+        // 减少 Direct
         metric.directCounter.add(-amount);
     }
 
     void incrementHeap(int amount) {
+        // 增加 Heap
         metric.heapCounter.add(amount);
     }
 
     void decrementHeap(int amount) {
+        // 减少 Heap
         metric.heapCounter.add(-amount);
     }
 
@@ -142,6 +159,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected byte[] allocateArray(int initialCapacity) {
             byte[] bytes = super.allocateArray(initialCapacity);
+            // Metric ++
             ((UnpooledByteBufAllocator) alloc()).incrementHeap(bytes.length);
             return bytes;
         }
@@ -150,6 +168,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeArray(byte[] array) {
             int length = array.length;
             super.freeArray(array);
+            // Metric --
             ((UnpooledByteBufAllocator) alloc()).decrementHeap(length);
         }
     }
@@ -162,6 +181,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected byte[] allocateArray(int initialCapacity) {
             byte[] bytes = super.allocateArray(initialCapacity);
+            // Metric
             ((UnpooledByteBufAllocator) alloc()).incrementHeap(bytes.length);
             return bytes;
         }
@@ -170,6 +190,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeArray(byte[] array) {
             int length = array.length;
             super.freeArray(array);
+            // Metric
             ((UnpooledByteBufAllocator) alloc()).decrementHeap(length);
         }
     }
@@ -184,6 +205,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected ByteBuffer allocateDirect(int initialCapacity) {
             ByteBuffer buffer = super.allocateDirect(initialCapacity);
+            // Metric++
             ((UnpooledByteBufAllocator) alloc()).incrementDirect(buffer.capacity());
             return buffer;
         }
@@ -192,6 +214,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         ByteBuffer reallocateDirect(ByteBuffer oldBuffer, int initialCapacity) {
             int capacity = oldBuffer.capacity();
             ByteBuffer buffer = super.reallocateDirect(oldBuffer, initialCapacity);
+            // Metric++
             ((UnpooledByteBufAllocator) alloc()).incrementDirect(buffer.capacity() - capacity);
             return buffer;
         }
@@ -200,10 +223,12 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeDirect(ByteBuffer buffer) {
             int capacity = buffer.capacity();
             super.freeDirect(buffer);
+            // Metric --
             ((UnpooledByteBufAllocator) alloc()).decrementDirect(capacity);
         }
     }
 
+    // UnsafeDirectByteBuf
     private static final class InstrumentedUnpooledUnsafeDirectByteBuf extends UnpooledUnsafeDirectByteBuf {
         InstrumentedUnpooledUnsafeDirectByteBuf(
                 UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
@@ -213,6 +238,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected ByteBuffer allocateDirect(int initialCapacity) {
             ByteBuffer buffer = super.allocateDirect(initialCapacity);
+            // Metric ++
             ((UnpooledByteBufAllocator) alloc()).incrementDirect(buffer.capacity());
             return buffer;
         }
@@ -221,10 +247,12 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeDirect(ByteBuffer buffer) {
             int capacity = buffer.capacity();
             super.freeDirect(buffer);
+            // Metric --
             ((UnpooledByteBufAllocator) alloc()).decrementDirect(capacity);
         }
     }
 
+    // DirectByteBuf
     private static final class InstrumentedUnpooledDirectByteBuf extends UnpooledDirectByteBuf {
         InstrumentedUnpooledDirectByteBuf(
                 UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
@@ -234,6 +262,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected ByteBuffer allocateDirect(int initialCapacity) {
             ByteBuffer buffer = super.allocateDirect(initialCapacity);
+            // Metric ++
             ((UnpooledByteBufAllocator) alloc()).incrementDirect(buffer.capacity());
             return buffer;
         }
@@ -242,12 +271,19 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeDirect(ByteBuffer buffer) {
             int capacity = buffer.capacity();
             super.freeDirect(buffer);
+            // Metric --
             ((UnpooledByteBufAllocator) alloc()).decrementDirect(capacity);
         }
     }
 
     private static final class UnpooledByteBufAllocatorMetric implements ByteBufAllocatorMetric {
+        /**
+         * Direct ByteBuf 占用内存大小
+         */
         final LongCounter directCounter = PlatformDependent.newLongCounter();
+        /**
+         * Heap ByteBuf 占用内存大小
+         */
         final LongCounter heapCounter = PlatformDependent.newLongCounter();
 
         @Override

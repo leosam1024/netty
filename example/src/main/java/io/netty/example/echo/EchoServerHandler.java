@@ -15,6 +15,8 @@
  */
 package io.netty.example.echo;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -27,8 +29,38 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ctx.write(msg);
-    }
+        // ctx.write(msg);
+        if ("fuck".equals(msg)) {
+            ctx.channel().close().addListener(new ChannelFutureListener() { // 我是一个萌萌哒监听器
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    System.out.println(Thread.currentThread() + "我会被唤醒");
+                }
+            });
+            return;
+        }
+        if (false) {
+            // ctx.channel().close().addListener(new ChannelFutureListener() {
+            // @Override
+            // public void operationComplete(ChannelFuture future) throws Exception {
+            // System.out.println(Thread.currentThread());
+            // }
+            // });
+            ctx.channel().disconnect().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    System.out.println(Thread.currentThread());
+                }
+            });
+            return;
+        }
+        ctx.write(msg).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                System.out.println("write 完成");
+            }
+        });
+    }   
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {

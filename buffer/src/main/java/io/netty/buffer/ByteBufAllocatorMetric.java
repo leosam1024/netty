@@ -17,11 +17,13 @@ package io.netty.buffer;
 
 public interface ByteBufAllocatorMetric {
     /**
+     * 已使用 Heap 占用内存大小
      * Returns the number of bytes of heap memory used by a {@link ByteBufAllocator} or {@code -1} if unknown.
      */
     long usedHeapMemory();
 
     /**
+     * 已使用 Direct 占用内存大小
      * Returns the number of bytes of direct memory used by a {@link ByteBufAllocator} or {@code -1} if unknown.
      */
     long usedDirectMemory();

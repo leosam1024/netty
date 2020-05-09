@@ -31,16 +31,22 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
             new ObjectCreator<PooledUnsafeDirectByteBuf>() {
         @Override
         public PooledUnsafeDirectByteBuf newObject(Handle<PooledUnsafeDirectByteBuf> handle) {
+            // 真正创建 PooledUnsafeDirectByteBuf 对象
             return new PooledUnsafeDirectByteBuf(handle, 0);
         }
     });
 
     static PooledUnsafeDirectByteBuf newInstance(int maxCapacity) {
+        // 从 Recycler 的对象池中获得 PooledUnsafeDirectByteBuf 对象
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
+        // 重置 PooledUnsafeDirectByteBuf 的属性
         buf.reuse(maxCapacity);
         return buf;
     }
 
+    /**
+     * 内存地址
+     */
     private long memoryAddress;
 
     private PooledUnsafeDirectByteBuf(Handle<PooledUnsafeDirectByteBuf> recyclerHandle, int maxCapacity) {
@@ -50,13 +56,17 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     @Override
     void init(PoolChunk<ByteBuffer> chunk, ByteBuffer nioBuffer,
               long handle, int offset, int length, int maxLength, PoolThreadCache cache) {
+        // 调用父初始化方法
         super.init(chunk, nioBuffer, handle, offset, length, maxLength, cache);
+        // 初始化内存地址
         initMemoryAddress();
     }
 
     @Override
     void initUnpooled(PoolChunk<ByteBuffer> chunk, int length) {
+        // 调用父初始化方法
         super.initUnpooled(chunk, length);
+        // 初始化内存地址
         initMemoryAddress();
     }
 

@@ -95,10 +95,17 @@ public abstract class ResourceLeakDetectorFactory {
      * Default implementation that loads custom leak detector via system property
      */
     private static final class DefaultResourceLeakDetectorFactory extends ResourceLeakDetectorFactory {
+        /**
+         * 对应 {@link ResourceLeakDetector#ResourceLeakDetector(Class, int, long)}
+         */
         private final Constructor<?> obsoleteCustomClassConstructor;
+        /**
+         * 对应 {@link ResourceLeakDetector#ResourceLeakDetector(Class, int)}
+         */
         private final Constructor<?> customClassConstructor;
 
         DefaultResourceLeakDetectorFactory() {
+            // 获得自定义的 ResourceLeakDetector 类名
             String customLeakDetector;
             try {
                 customLeakDetector = SystemPropertyUtil.get("io.netty.customResourceLeakDetector");
@@ -106,6 +113,7 @@ public abstract class ResourceLeakDetectorFactory {
                 logger.error("Could not access System property: io.netty.customResourceLeakDetector", cause);
                 customLeakDetector = null;
             }
+            // 获得 obsoleteCustomClassConstructor 和 customClassConstructor 构造方法
             if (customLeakDetector == null) {
                 obsoleteCustomClassConstructor = customClassConstructor = null;
             } else {
@@ -116,9 +124,11 @@ public abstract class ResourceLeakDetectorFactory {
 
         private static Constructor<?> obsoleteCustomClassConstructor(String customLeakDetector) {
             try {
+                // 获得类
                 final Class<?> detectorClass = Class.forName(customLeakDetector, true,
                         PlatformDependent.getSystemClassLoader());
 
+                // 获得构造方法，并且类必须继承自 ResourceLeakDetector
                 if (ResourceLeakDetector.class.isAssignableFrom(detectorClass)) {
                     return detectorClass.getConstructor(Class.class, int.class, long.class);
                 } else {
@@ -133,9 +143,11 @@ public abstract class ResourceLeakDetectorFactory {
 
         private static Constructor<?> customClassConstructor(String customLeakDetector) {
             try {
+                // 获得类
                 final Class<?> detectorClass = Class.forName(customLeakDetector, true,
                         PlatformDependent.getSystemClassLoader());
 
+                // 获得构造方法，并且类必须继承自 ResourceLeakDetector
                 if (ResourceLeakDetector.class.isAssignableFrom(detectorClass)) {
                     return detectorClass.getConstructor(Class.class, int.class);
                 } else {
@@ -152,6 +164,7 @@ public abstract class ResourceLeakDetectorFactory {
         @Override
         public <T> ResourceLeakDetector<T> newResourceLeakDetector(Class<T> resource, int samplingInterval,
                                                                    long maxActive) {
+            // 基于 obsoleteCustomClassConstructor 创建 ResourceLeakDetector 对象
             if (obsoleteCustomClassConstructor != null) {
                 try {
                     @SuppressWarnings("unchecked")
@@ -168,6 +181,7 @@ public abstract class ResourceLeakDetectorFactory {
                 }
             }
 
+            // 直接创建 ResourceLeakDetector 对象
             ResourceLeakDetector<T> resourceLeakDetector = new ResourceLeakDetector<T>(resource, samplingInterval,
                                                                                        maxActive);
             logger.debug("Loaded default ResourceLeakDetector: {}", resourceLeakDetector);
@@ -176,6 +190,7 @@ public abstract class ResourceLeakDetectorFactory {
 
         @Override
         public <T> ResourceLeakDetector<T> newResourceLeakDetector(Class<T> resource, int samplingInterval) {
+            // 基于 customClassConstructor 创建 ResourceLeakDetector 对象
             if (customClassConstructor != null) {
                 try {
                     @SuppressWarnings("unchecked")
@@ -191,6 +206,7 @@ public abstract class ResourceLeakDetectorFactory {
                 }
             }
 
+            // 直接创建 ResourceLeakDetector 对象
             ResourceLeakDetector<T> resourceLeakDetector = new ResourceLeakDetector<T>(resource, samplingInterval);
             logger.debug("Loaded default ResourceLeakDetector: {}", resourceLeakDetector);
             return resourceLeakDetector;
