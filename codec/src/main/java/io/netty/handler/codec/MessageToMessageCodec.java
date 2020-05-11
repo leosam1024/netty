@@ -54,6 +54,9 @@ import java.util.List;
  */
 public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends ChannelDuplexHandler {
 
+    /**
+     * Encoder 对象
+     */
     private final MessageToMessageEncoder<Object> encoder = new MessageToMessageEncoder<Object>() {
 
         @Override
@@ -68,6 +71,9 @@ public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends Cha
         }
     };
 
+    /**
+     * Decoder 对象
+     */
     private final MessageToMessageDecoder<Object> decoder = new MessageToMessageDecoder<Object>() {
 
         @Override
@@ -82,7 +88,13 @@ public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends Cha
         }
     };
 
+    /**
+     * Decoder 的类型匹配器
+     */
     private final TypeParameterMatcher inboundMsgMatcher;
+    /**
+     * Encoder 的类型匹配器
+     */
     private final TypeParameterMatcher outboundMsgMatcher;
 
     /**

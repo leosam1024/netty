@@ -51,6 +51,9 @@ import java.util.List;
  */
 public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerAdapter {
 
+    /**
+     * 类型匹配器
+     */
     private final TypeParameterMatcher matcher;
 
     /**
@@ -81,21 +84,28 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         CodecOutputList out = null;
         try {
+            // 判断是否为匹配的消息
             if (acceptOutboundMessage(msg)) {
+                // 创建 CodecOutputList 对象
                 out = CodecOutputList.newInstance();
+                // 转化消息类型
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
                 try {
+                    // 将消息编码成另外一个消息
                     encode(ctx, cast, out);
                 } finally {
+                    // 释放 cast 原消息
                     ReferenceCountUtil.release(cast);
                 }
 
+                // 如果未编码出消息，抛出异常
                 if (out.isEmpty()) {
                     throw new EncoderException(
                             StringUtil.simpleClassName(this) + " must produce at least one message.");
                 }
             } else {
+                // 直接下一个节点
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {

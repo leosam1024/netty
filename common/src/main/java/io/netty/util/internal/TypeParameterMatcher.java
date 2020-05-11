@@ -150,6 +150,10 @@ public abstract class TypeParameterMatcher {
     public abstract boolean match(Object msg);
 
     private static final class ReflectiveMatcher extends TypeParameterMatcher {
+
+        /**
+         * 类型
+         */
         private final Class<?> type;
 
         ReflectiveMatcher(Class<?> type) {

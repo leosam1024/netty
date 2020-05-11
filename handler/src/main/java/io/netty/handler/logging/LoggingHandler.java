@@ -41,11 +41,23 @@ import static io.netty.util.internal.StringUtil.NEWLINE;
 @SuppressWarnings({ "StringConcatenationInsideStringBufferAppend", "StringBufferReplaceableByString" })
 public class LoggingHandler extends ChannelDuplexHandler {
 
+    /**
+     * 默认 {@link #level} 日志级别
+     */
     private static final LogLevel DEFAULT_LEVEL = LogLevel.DEBUG;
 
+    /**
+     * Netty 内部 Logger 对象
+     */
     protected final InternalLogger logger;
+    /**
+     * Netty 内部 LogLevel 级别
+     */
     protected final InternalLogLevel internalLevel;
 
+    /**
+     * 配置的 LogLevel 级别
+     */
     private final LogLevel level;
     private final ByteBufFormat byteBufFormat;
 
@@ -183,9 +195,11 @@ public class LoggingHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        // 打印日志
         if (logger.isEnabled(internalLevel)) {
             logger.log(internalLevel, format(ctx, "ACTIVE"));
         }
+        // 传递 Channel active 事件，给下一个节点
         ctx.fireChannelActive();
     }
 

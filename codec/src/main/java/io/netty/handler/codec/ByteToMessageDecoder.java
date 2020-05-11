@@ -111,6 +111,11 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by add them to a {@link CompositeByteBuf} and so do no memory copy whenever possible.
      * Be aware that {@link CompositeByteBuf} use a more complex indexing implementation so depending on your use-case
      * and the decoder implementation this may be slower then just use the {@link #MERGE_CUMULATOR}.
+     *
+     * 相比 MERGE_CUMULATOR 来说：
+     *
+     * 好处是，内存零拷贝
+     * 坏处是，因为维护复杂索引，所以某些使用场景下，慢于 MERGE_CUMULATOR
      */
     public static final Cumulator COMPOSITE_CUMULATOR = new Cumulator() {
         @Override
@@ -151,8 +156,21 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     private static final byte STATE_CALLING_CHILD_DECODE = 1;
     private static final byte STATE_HANDLER_REMOVED_PENDING = 2;
 
+    /**
+     * 已累积的 ByteBuf 对象
+     */
     ByteBuf cumulation;
+    /**
+     * 累计器
+     */
     private Cumulator cumulator = MERGE_CUMULATOR;
+    /**
+     * 是否每次只解码一条消息，默认为 false 。
+     *
+     * 部分解码器为 true ，例如：Socks4ClientDecoder
+     *
+     * @see #callDecode(ChannelHandlerContext, ByteBuf, List)
+     */
     private boolean singleDecode;
     private boolean first;
 
@@ -169,12 +187,27 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      *     <li>{@link #STATE_CALLING_CHILD_DECODE}</li>
      *     <li>{@link #STATE_HANDLER_REMOVED_PENDING}</li>
      * </ul>
+     *
+     * 解码状态
+     *
+     * 0 - 初始化
+     * 1 - 调用 {@link #decode(ChannelHandlerContext, ByteBuf, List)} 方法中，正在进行解码
+     * 2 - 准备移除
      */
     private byte decodeState = STATE_INIT;
+    /**
+     * 读取释放阀值
+     */
     private int discardAfterReads = 16;
+    /**
+     * 已读取次数。
+     *
+     * 再读取 {@link #discardAfterReads} 次数据后，如果无法全部解码完，则进行释放，避免 OOM
+     */
     private int numReads;
 
     protected ByteToMessageDecoder() {
+        // 校验，不可共享
         ensureNotSharable();
     }
 
@@ -239,9 +272,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     @Override
     public final void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        // 状态处于 STATE_CALLING_CHILD_DECODE 时，标记状态为 STATE_HANDLER_REMOVED_PENDING
         if (decodeState == STATE_CALLING_CHILD_DECODE) {
             decodeState = STATE_HANDLER_REMOVED_PENDING;
-            return;
+            return; // 返回！！！！结合 `#decodeRemovalReentryProtection(...)` 方法，一起看。
         }
         ByteBuf buf = cumulation;
         if (buf != null) {
@@ -368,6 +402,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     private void channelInputClosed(ChannelHandlerContext ctx, boolean callChannelInactive) {
         CodecOutputList out = CodecOutputList.newInstance();
         try {
+            // 当 Channel 读取关闭时，执行解码剩余消息的逻辑
             channelInputClosed(ctx, out);
         } catch (DecoderException e) {
             throw e;
@@ -375,20 +410,25 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             throw new DecoderException(e);
         } finally {
             try {
+                // 释放 cumulation
                 if (cumulation != null) {
                     cumulation.release();
                     cumulation = null;
                 }
                 int size = out.size();
+                // 触发 Channel Read 事件到下一个节点。可能是多条消息
                 fireChannelRead(ctx, out, size);
+                // 如果有解码到消息，则触发 Channel ReadComplete 事件到下一个节点。
                 if (size > 0) {
                     // Something was read, call fireChannelReadComplete()
                     ctx.fireChannelReadComplete();
                 }
+                // 如果方法调用来源是 `#channelInactive(...)` ，则触发 Channel Inactive 事件到下一个节点
                 if (callChannelInactive) {
                     ctx.fireChannelInactive();
                 }
             } finally {
+                // 回收 CodecOutputList 对象
                 // Recycle in all cases
                 out.recycle();
             }
@@ -401,9 +441,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     void channelInputClosed(ChannelHandlerContext ctx, List<Object> out) throws Exception {
         if (cumulation != null) {
+            // 执行解码
             callDecode(ctx, cumulation, out);
+            // 最后一次，执行解码
             decodeLast(ctx, cumulation, out);
         } else {
+            // 最后一次，执行解码
             decodeLast(ctx, Unpooled.EMPTY_BUFFER, out);
         }
     }
@@ -436,9 +479,13 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     outSize = 0;
                 }
 
+                // 记录当前可读字节数
                 int oldInputLength = in.readableBytes();
+
+                // 执行解码。如果 Handler 准备移除，在解码完成后，进行移除。
                 decodeRemovalReentryProtection(ctx, in, out);
 
+                // 用户主动删除该 Handler ，继续操作 in 是不安全的
                 // Check if this handler was removed before continuing the loop.
                 // If it was removed, it is not safe to continue to operate on the buffer.
                 //
@@ -447,20 +494,25 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     break;
                 }
 
+                // 整列判断 `out.size() == 0` 比较合适。因为，如果 `outSize > 0` 那段，已经清理了 out 。
                 if (outSize == out.size()) {
+                    // 如果未读取任何字节，结束循环
                     if (oldInputLength == in.readableBytes()) {
                         break;
+                    // 如果可读字节发生变化，继续读取
                     } else {
                         continue;
                     }
                 }
 
+                // 如果解码了消息，但是可读字节数未变，抛出 DecoderException 异常。说明，有问题。
                 if (oldInputLength == in.readableBytes()) {
                     throw new DecoderException(
                             StringUtil.simpleClassName(getClass()) +
                                     ".decode() did not read anything but decoded a message.");
                 }
 
+                // 如果开启 singleDecode ，表示只解析一次，结束循环
                 if (isSingleDecode()) {
                     break;
                 }
@@ -498,13 +550,15 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             throws Exception {
         decodeState = STATE_CALLING_CHILD_DECODE;
         try {
+            // 执行解码
             decode(ctx, in, out);
         } finally {
+            // 判断是否准备移除
             boolean removePending = decodeState == STATE_HANDLER_REMOVED_PENDING;
+            // 设置状态为 STATE_INIT
             decodeState = STATE_INIT;
+            // 移除当前 Handler
             if (removePending) {
-                fireChannelRead(ctx, out, out.size());
-                out.clear();
                 handlerRemoved(ctx);
             }
         }
@@ -538,6 +592,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 .writerIndex(totalBytes);
             in.readerIndex(in.writerIndex());
             toRelease = oldCumulation;
+        // 返回新的 ByteBuf 对象
             return newCumulation;
         } finally {
             toRelease.release();
@@ -545,13 +600,21 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     }
 
     /**
+     * ByteBuf 累积器接口
+     *
      * Cumulate {@link ByteBuf}s.
      */
     public interface Cumulator {
+
         /**
          * Cumulate the given {@link ByteBuf}s and return the {@link ByteBuf} that holds the cumulated bytes.
          * The implementation is responsible to correctly handle the life-cycle of the given {@link ByteBuf}s and so
          * call {@link ByteBuf#release()} if a {@link ByteBuf} is fully consumed.
+         *
+         * @param alloc ByteBuf 分配器
+         * @param cumulation ByteBuf 当前累积结果
+         * @param in 当前读取( 输入 ) ByteBuf
+         * @return ByteBuf 新的累积结果
          */
         ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in);
     }
