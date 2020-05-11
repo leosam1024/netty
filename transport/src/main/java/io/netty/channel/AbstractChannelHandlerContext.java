@@ -824,6 +824,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         // 获得下一个 Outbound 节点
         final AbstractChannelHandlerContext next = findContextOutbound(flush ?
                 (MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
+        // 记录 Record 记录
         final Object m = pipeline.touch(msg, next);
         EventExecutor executor = next.executor();
         // 在 EventLoop 的线程中

@@ -27,6 +27,9 @@ import io.netty.util.internal.UnstableApi;
  */
 @UnstableApi
 public final class PreferHeapByteBufAllocator implements ByteBufAllocator {
+    /**
+     * 真正的分配器对象
+     */
     private final ByteBufAllocator allocator;
 
     public PreferHeapByteBufAllocator(ByteBufAllocator allocator) {

@@ -48,6 +48,9 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     private static final int DEFAULT_CONNECT_TIMEOUT = 30000;
 
+    /**
+     * {@link #autoRead} 的原子更新器
+     */
     private static final AtomicIntegerFieldUpdater<DefaultChannelConfig> AUTOREAD_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(DefaultChannelConfig.class, "autoRead");
     private static final AtomicReferenceFieldUpdater<DefaultChannelConfig, WriteBufferWaterMark> WATERMARK_UPDATER =
@@ -61,7 +64,16 @@ public class DefaultChannelConfig implements ChannelConfig {
     private volatile MessageSizeEstimator msgSizeEstimator = DEFAULT_MSG_SIZE_ESTIMATOR;
 
     private volatile int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT;
+    /**
+     * 自旋写入次数
+     */
     private volatile int writeSpinCount = 16;
+    /**
+     * 是否开启自动读取的开关
+     *
+     * 1 - 开启
+     * 0 - 关闭
+     */
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int autoRead = 1;
     private volatile boolean autoClose = true;
@@ -311,9 +323,12 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     @Override
     public ChannelConfig setAutoRead(boolean autoRead) {
+        // 原子更新，并且获得更新前的值
         boolean oldAutoRead = AUTOREAD_UPDATER.getAndSet(this, autoRead ? 1 : 0) == 1;
+        // 发起读取
         if (autoRead && !oldAutoRead) {
             channel.read();
+        // 关闭读取
         } else if (!autoRead && oldAutoRead) {
             autoReadCleared();
         }

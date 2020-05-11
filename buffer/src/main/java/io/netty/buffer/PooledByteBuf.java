@@ -39,6 +39,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
      * Chunk 对象
      */
     protected PoolChunk<T> chunk;
+    /**
+     * 从 Chunk 对象中分配的内存块所处的位置
+     */
     protected long handle;
     /**
      * 内存空间。具体什么样的数据，通过子类设置泛型。
@@ -60,6 +63,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
      * 占用 {@link #memory} 的大小
      */
     int maxLength;
+    /**
+     * TODO 1013 Chunk
+     */
     PoolThreadCache cache;
     /**
      * 临时 ByteBuff 对象
@@ -83,6 +89,7 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         init0(chunk, nioBuffer, handle, offset, length, maxLength, cache);
     }
 
+    // 初始化 Unpooled
     void initUnpooled(PoolChunk<T> chunk, int length) {
         init0(chunk, null, 0, chunk.offset, length, length, null);
     }
