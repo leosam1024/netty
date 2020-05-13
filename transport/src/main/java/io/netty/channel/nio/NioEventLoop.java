@@ -50,7 +50,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Nio EventLoop ÊµÏÖÀà£¬ÊµÏÖ¶Ô×¢²áµ½ÆäÖĞµÄ Channel µÄ¾ÍĞ÷µÄ IO ÊÂ¼ş£¬ºÍ¶ÔÓÃ»§Ìá½»µÄÈÎÎñ½øĞĞ´¦Àí
+ * Nio EventLoop å®ç°ç±»ï¼Œå®ç°å¯¹æ³¨å†Œåˆ°å…¶ä¸­çš„ Channel çš„å°±ç»ªçš„ IO äº‹ä»¶ï¼Œå’Œå¯¹ç”¨æˆ·æäº¤çš„ä»»åŠ¡è¿›è¡Œå¤„ç†
  *
  * {@link SingleThreadEventLoop} implementation which register the {@link Channel}'s to a
  * {@link Selector} and so does the multi-plexing of these in the event loop.
@@ -69,11 +69,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             SystemPropertyUtil.getBoolean("io.netty.noKeySetOptimization", false);
 
     /**
-     * ÉÙÓÚ¸Ã N Öµ£¬²»¿ªÆô¿ÕÂÖÑ¯ÖØ½¨ĞÂµÄ Selector ¶ÔÏóµÄ¹¦ÄÜ
+     * å°‘äºè¯¥ N å€¼ï¼Œä¸å¼€å¯ç©ºè½®è¯¢é‡å»ºæ–°çš„ Selector å¯¹è±¡çš„åŠŸèƒ½
      */
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
     /**
-     * NIO Selector ¿ÕÂÖÑ¯¸Ã N ´Îºó£¬ÖØ½¨ĞÂµÄ Selector ¶ÔÏó
+     * NIO Selector ç©ºè½®è¯¢è¯¥ N æ¬¡åï¼Œé‡å»ºæ–°çš„ Selector å¯¹è±¡
      */
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
 
@@ -90,7 +90,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     // - http://bugs.sun.com/view_bug.do?bug_id=6427854
     // - https://github.com/netty/netty/issues/203
     static {
-        // ½â¾ö Selector#open() ·½·¨
+        // è§£å†³ Selector#open() æ–¹æ³•
         final String key = "sun.nio.ch.bugLevel";
         final String bugLevel = SystemPropertyUtil.get(key);
         if (bugLevel == null) {
@@ -107,7 +107,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             }
         }
 
-        // ³õÊ¼»¯
+        // åˆå§‹åŒ–
         int selectorAutoRebuildThreshold = SystemPropertyUtil.getInt("io.netty.selectorAutoRebuildThreshold", 512);
         if (selectorAutoRebuildThreshold < MIN_PREMATURE_SELECTOR_RETURNS) {
             selectorAutoRebuildThreshold = 0;
@@ -124,21 +124,21 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     /**
      * The NIO {@link Selector}.
      *
-     * °ü×°µÄ Selector ¶ÔÏó£¬¾­¹ıÓÅ»¯
+     * åŒ…è£…çš„ Selector å¯¹è±¡ï¼Œç»è¿‡ä¼˜åŒ–
      *
      * {@link #openSelector()}
      */
     private Selector selector;
     /**
-     * Î´°ü×°µÄ Selector ¶ÔÏó
+     * æœªåŒ…è£…çš„ Selector å¯¹è±¡
      */
     private Selector unwrappedSelector;
     /**
-     * ×¢²áµÄ SelectionKey ¼¯ºÏ¡£Netty ×Ô¼ºÊµÏÖ£¬¾­¹ıÓÅ»¯¡£
+     * æ³¨å†Œçš„ SelectionKey é›†åˆã€‚Netty è‡ªå·±å®ç°ï¼Œç»è¿‡ä¼˜åŒ–ã€‚
      */
     private SelectedSelectionKeySet selectedKeys;
     /**
-     * SelectorProvider ¶ÔÏó£¬ÓÃÓÚ´´½¨ Selector ¶ÔÏó
+     * SelectorProvider å¯¹è±¡ï¼Œç”¨äºåˆ›å»º Selector å¯¹è±¡
      */
     private final SelectorProvider provider;
 
@@ -149,26 +149,26 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     //    AWAKE            when EL is awake
     //    NONE             when EL is waiting with no wakeup scheduled
     //    other value T    when EL is waiting with wakeup scheduled at time T
-	//  »½ĞÑ±ê¼Ç¡£ÒòÎª»½ĞÑ·½·¨ {@link Selector#wakeup()} ¿ªÏú±È½Ï´ó£¬Í¨¹ı¸Ã±êÊ¶£¬¼õÉÙµ÷ÓÃ¡£
+	//  å”¤é†’æ ‡è®°ã€‚å› ä¸ºå”¤é†’æ–¹æ³• {@link Selector#wakeup()} å¼€é”€æ¯”è¾ƒå¤§ï¼Œé€šè¿‡è¯¥æ ‡è¯†ï¼Œå‡å°‘è°ƒç”¨ã€‚
     private final AtomicLong nextWakeupNanos = new AtomicLong(AWAKE);
     /**
-     * Select ²ßÂÔ
+     * Select ç­–ç•¥
      *
      * @see #select(boolean)
      */
     private final SelectStrategy selectStrategy;
     /**
-     * ´¦Àí Channel µÄ¾ÍĞ÷µÄ IO ÊÂ¼ş£¬Õ¼´¦ÀíÈÎÎñµÄ×ÜÊ±¼äµÄ±ÈÀı
+     * å¤„ç† Channel çš„å°±ç»ªçš„ IO äº‹ä»¶ï¼Œå å¤„ç†ä»»åŠ¡çš„æ€»æ—¶é—´çš„æ¯”ä¾‹
      */
     private volatile int ioRatio = 50;
     /**
-     * È¡Ïû SelectionKey µÄÊıÁ¿
+     * å–æ¶ˆ SelectionKey çš„æ•°é‡
      *
      * TODO 1007 NioEventLoop cancel
      */
     private int cancelledKeys;
     /**
-     * ÊÇ·ñĞèÒªÔÙ´Î select Selector ¶ÔÏó
+     * æ˜¯å¦éœ€è¦å†æ¬¡ select Selector å¯¹è±¡
      *
      * TODO 1007 NioEventLoop cancel
      */
@@ -195,16 +195,16 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
-     * Selector Ôª×é
+     * Selector å…ƒç»„
      */
     private static final class SelectorTuple {
 
         /**
-         * Î´°ü×°µÄ Selector ¶ÔÏó
+         * æœªåŒ…è£…çš„ Selector å¯¹è±¡
          */
         final Selector unwrappedSelector;
         /**
-         * Î´°ü×°µÄ Selector ¶ÔÏó
+         * æœªåŒ…è£…çš„ Selector å¯¹è±¡
          */
         final Selector selector;
 
@@ -220,7 +220,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private SelectorTuple openSelector() {
-        // ´´½¨ Selector ¶ÔÏó£¬×÷Îª unwrappedSelector
+        // åˆ›å»º Selector å¯¹è±¡ï¼Œä½œä¸º unwrappedSelector
         final Selector unwrappedSelector;
         try {
             unwrappedSelector = provider.openSelector();
@@ -228,12 +228,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new ChannelException("failed to open a new selector", e);
         }
 
-        // ½ûÓÃ SelectionKey µÄÓÅ»¯£¬ÔòÖ±½Ó·µ»Ø SelectorTuple ¶ÔÏó¡£¼´£¬selector Ò²Ê¹ÓÃ unwrappedSelector ¡£
+        // ç¦ç”¨ SelectionKey çš„ä¼˜åŒ–ï¼Œåˆ™ç›´æ¥è¿”å› SelectorTuple å¯¹è±¡ã€‚å³ï¼Œselector ä¹Ÿä½¿ç”¨ unwrappedSelector ã€‚
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
         }
 
-        // »ñµÃ SelectorImpl Àà
+        // è·å¾— SelectorImpl ç±»
         Object maybeSelectorImplClass = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -241,14 +241,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     return Class.forName(
                             "sun.nio.ch.SelectorImpl",
                             false,
-                            PlatformDependent.getSystemClassLoader()); // ³É¹¦£¬Ôò·µ»Ø¸ÃÀà
+                            PlatformDependent.getSystemClassLoader()); // æˆåŠŸï¼Œåˆ™è¿”å›è¯¥ç±»
                 } catch (Throwable cause) {
-                    return cause; // Ê§°Ü£¬Ôò·µ»Ø¸ÃÒì³£
+                    return cause; // å¤±è´¥ï¼Œåˆ™è¿”å›è¯¥å¼‚å¸¸
                 }
             }
         });
 
-        // »ñµÃ SelectorImpl ÀàÊ§°Ü£¬ÔòÖ±½Ó·µ»Ø SelectorTuple ¶ÔÏó¡£¼´£¬selector Ò²Ê¹ÓÃ unwrappedSelector ¡£
+        // è·å¾— SelectorImpl ç±»å¤±è´¥ï¼Œåˆ™ç›´æ¥è¿”å› SelectorTuple å¯¹è±¡ã€‚å³ï¼Œselector ä¹Ÿä½¿ç”¨ unwrappedSelector ã€‚
         if (!(maybeSelectorImplClass instanceof Class) ||
                 // ensure the current selector implementation is what we can instrument.
                 !((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass())) {
@@ -261,15 +261,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
 
-        // ´´½¨ SelectedSelectionKeySet ¶ÔÏó
+        // åˆ›å»º SelectedSelectionKeySet å¯¹è±¡
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
 
-        // ÉèÖÃ SelectedSelectionKeySet ¶ÔÏóµ½ unwrappedSelector ÖĞ
+        // è®¾ç½® SelectedSelectionKeySet å¯¹è±¡åˆ° unwrappedSelector ä¸­
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
                 try {
-                    // »ñµÃ "selectedKeys" "publicSelectedKeys" µÄ Field
+                    // è·å¾— "selectedKeys" "publicSelectedKeys" çš„ Field
                     Field selectedKeysField = selectorImplClass.getDeclaredField("selectedKeys");
                     Field publicSelectedKeysField = selectorImplClass.getDeclaredField("publicSelectedKeys");
 
@@ -299,19 +299,19 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         return cause;
                     }
 
-                    // ÉèÖÃ SelectedSelectionKeySet ¶ÔÏóµ½ unwrappedSelector µÄ Field ÖĞ
+                    // è®¾ç½® SelectedSelectionKeySet å¯¹è±¡åˆ° unwrappedSelector çš„ Field ä¸­
                     selectedKeysField.set(unwrappedSelector, selectedKeySet);
                     publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
                     return null;
                 } catch (NoSuchFieldException e) {
-                    return e; // Ê§°Ü£¬Ôò·µ»Ø¸ÃÒì³£
+                    return e; // å¤±è´¥ï¼Œåˆ™è¿”å›è¯¥å¼‚å¸¸
                 } catch (IllegalAccessException e) {
-                    return e; // Ê§°Ü£¬Ôò·µ»Ø¸ÃÒì³£
+                    return e; // å¤±è´¥ï¼Œåˆ™è¿”å›è¯¥å¼‚å¸¸
                 }
             }
         });
 
-        // ÉèÖÃ SelectedSelectionKeySet ¶ÔÏóµ½ unwrappedSelector ÖĞÊ§°Ü£¬ÔòÖ±½Ó·µ»Ø SelectorTuple ¶ÔÏó¡£¼´£¬selector Ò²Ê¹ÓÃ unwrappedSelector ¡£
+        // è®¾ç½® SelectedSelectionKeySet å¯¹è±¡åˆ° unwrappedSelector ä¸­å¤±è´¥ï¼Œåˆ™ç›´æ¥è¿”å› SelectorTuple å¯¹è±¡ã€‚å³ï¼Œselector ä¹Ÿä½¿ç”¨ unwrappedSelector ã€‚
         if (maybeException instanceof Exception) {
             selectedKeys = null;
             Exception e = (Exception) maybeException;
@@ -319,7 +319,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             return new SelectorTuple(unwrappedSelector);
         }
 
-        // ÉèÖÃ SelectedSelectionKeySet ¶ÔÏóµ½ selectedKeys ÖĞ
+        // è®¾ç½® SelectedSelectionKeySet å¯¹è±¡åˆ° selectedKeys ä¸­
         selectedKeys = selectedKeySet;
         logger.trace("instrumented a special java.util.Set into: {}", unwrappedSelector);
         return new SelectorTuple(unwrappedSelector,
@@ -416,7 +416,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * around the infamous epoll 100% CPU bug.
      */
     public void rebuildSelector() {
-        // Ö»ÔÊĞíÔÚ EventLoop µÄÏß³ÌÖĞÖ´ĞĞ
+        // åªå…è®¸åœ¨ EventLoop çš„çº¿ç¨‹ä¸­æ‰§è¡Œ
         if (!inEventLoop()) {
             execute(new Runnable() {
                 @Override
@@ -450,8 +450,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         // Register all channels to the new Selector.
-        // ½«×¢²áÔÚ NioEventLoop ÉÏµÄËùÓĞ Channel £¬×¢²áµ½ĞÂ´´½¨ Selector ¶ÔÏóÉÏ
-        int nChannels = 0; // ¼ÆËãÖØĞÂ×¢²á³É¹¦µÄ Channel ÊıÁ¿
+        // å°†æ³¨å†Œåœ¨ NioEventLoop ä¸Šçš„æ‰€æœ‰ Channel ï¼Œæ³¨å†Œåˆ°æ–°åˆ›å»º Selector å¯¹è±¡ä¸Š
+        int nChannels = 0; // è®¡ç®—é‡æ–°æ³¨å†ŒæˆåŠŸçš„ Channel æ•°é‡
         for (SelectionKey key: oldSelector.keys()) {
             Object a = key.attachment();
             try {
@@ -460,25 +460,25 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 }
 
                 int interestOps = key.interestOps();
-                // È¡ÏûÀÏµÄ SelectionKey
+                // å–æ¶ˆè€çš„ SelectionKey
                 key.cancel();
-                // ½« Channel ×¢²áµ½ĞÂµÄ Selector ¶ÔÏóÉÏ
+                // å°† Channel æ³¨å†Œåˆ°æ–°çš„ Selector å¯¹è±¡ä¸Š
                 SelectionKey newKey = key.channel().register(newSelectorTuple.unwrappedSelector, interestOps, a);
-                // ĞŞ¸Ä Channel µÄ selectionKey Ö¸ÏòĞÂµÄ SelectionKey ÉÏ
+                // ä¿®æ”¹ Channel çš„ selectionKey æŒ‡å‘æ–°çš„ SelectionKey ä¸Š
                 if (a instanceof AbstractNioChannel) {
                     // Update SelectionKey
                     ((AbstractNioChannel) a).selectionKey = newKey;
                 }
 
-                // ¼ÆÊı ++
+                // è®¡æ•° ++
                 nChannels ++;
             } catch (Exception e) {
                 logger.warn("Failed to re-register a Channel to the new Selector.", e);
-                // ¹Ø±Õ·¢ÉúÒì³£µÄ Channel
+                // å…³é—­å‘ç”Ÿå¼‚å¸¸çš„ Channel
                 if (a instanceof AbstractNioChannel) {
                     AbstractNioChannel ch = (AbstractNioChannel) a;
                     ch.unsafe().close(ch.unsafe().voidPromise());
-                // µ÷ÓÃ NioTask µÄÈ¡Ïû×¢²áÊÂ¼ş
+                // è°ƒç”¨ NioTask çš„å–æ¶ˆæ³¨å†Œäº‹ä»¶
                 } else {
                     @SuppressWarnings("unchecked")
                     NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;
@@ -487,11 +487,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             }
         }
 
-        // ĞŞ¸Ä selector ºÍ unwrappedSelector Ö¸ÏòĞÂµÄ Selector ¶ÔÏó
+        // ä¿®æ”¹ selector å’Œ unwrappedSelector æŒ‡å‘æ–°çš„ Selector å¯¹è±¡
         selector = newSelectorTuple.selector;
         unwrappedSelector = newSelectorTuple.unwrappedSelector;
 
-        // ¹Ø±ÕÀÏµÄ Selector ¶ÔÏó
+        // å…³é—­è€çš„ Selector å¯¹è±¡
         try {
             // time to close the old selector as everything else is registered to the new one
             oldSelector.close();
@@ -555,22 +555,22 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 boolean ranTasks;
                 if (ioRatio == 100) {
                     try {
-					// ´¦Àí Channel ¸ĞĞËÈ¤µÄ¾ÍĞ÷ IO ÊÂ¼ş
+					// å¤„ç† Channel æ„Ÿå…´è¶£çš„å°±ç»ª IO äº‹ä»¶
                         if (strategy > 0) {
                             processSelectedKeys();
                         }
                     } finally {
-                        // ÔËĞĞËùÓĞÆÕÍ¨ÈÎÎñºÍ¶¨Ê±ÈÎÎñ£¬²»ÏŞÖÆÊ±¼ä
+                        // è¿è¡Œæ‰€æœ‰æ™®é€šä»»åŠ¡å’Œå®šæ—¶ä»»åŠ¡ï¼Œä¸é™åˆ¶æ—¶é—´
                         // Ensure we always run tasks.
                         ranTasks = runAllTasks();
                     }
                 } else if (strategy > 0) {
                     final long ioStartTime = System.nanoTime();
                     try {
-                        // ´¦Àí Channel ¸ĞĞËÈ¤µÄ¾ÍĞ÷ IO ÊÂ¼ş
+                        // å¤„ç† Channel æ„Ÿå…´è¶£çš„å°±ç»ª IO äº‹ä»¶
                         processSelectedKeys();
                     } finally {
-                        // ÔËĞĞËùÓĞÆÕÍ¨ÈÎÎñºÍ¶¨Ê±ÈÎÎñ£¬ÏŞÖÆÊ±¼ä
+                        // è¿è¡Œæ‰€æœ‰æ™®é€šä»»åŠ¡å’Œå®šæ—¶ä»»åŠ¡ï¼Œé™åˆ¶æ—¶é—´
                         // Ensure we always run tasks.
                         final long ioTime = System.nanoTime() - ioStartTime;
                         ranTasks = runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
@@ -597,7 +597,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             } catch (Throwable t) {
                 handleLoopException(t);
             }
-            // TODO 1006 EventLoop ÓÅÑÅ¹Ø±Õ
+            // TODO 1006 EventLoop ä¼˜é›…å…³é—­
             // Always handle shutdown even if the loop processing threw an exception.
             try {
                 if (isShuttingDown()) {
@@ -685,30 +685,31 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             return;
         }
 
-        // ±éÀú SelectionKey µü´úÆ÷
+        // éå† SelectionKey è¿­ä»£å™¨
         Iterator<SelectionKey> i = selectedKeys.iterator();
         for (;;) {
-            // »ñµÃ SelectionKey ¶ÔÏó
+            // è·å¾— SelectionKey å¯¹è±¡
             final SelectionKey k = i.next();
-            // ´Óµü´úÆ÷ÖĞÒÆ³ı
+            final Object a = k.attachment();
+            // ä»è¿­ä»£å™¨ä¸­ç§»é™¤
             i.remove();
 
-            // ´¦ÀíÒ»¸ö Channel ¾ÍĞ÷µÄ IO ÊÂ¼ş
+            // å¤„ç†ä¸€ä¸ª Channel å°±ç»ªçš„ IO äº‹ä»¶
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
-            // Ê¹ÓÃ NioTask ´¦ÀíÒ»¸ö Channel ¾ÍĞ÷µÄ IO ÊÂ¼ş
+            // ä½¿ç”¨ NioTask å¤„ç†ä¸€ä¸ª Channel å°±ç»ªçš„ IO äº‹ä»¶
             } else {
                 @SuppressWarnings("unchecked")
                 NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;
                 processSelectedKey(k, task);
             }
 
-            // ÎŞÏÂÒ»¸ö½Úµã£¬½áÊø
+            // æ— ä¸‹ä¸€ä¸ªèŠ‚ç‚¹ï¼Œç»“æŸ
             if (!i.hasNext()) {
                 break;
             }
 
-            // TODO 1007 NioEventLoop cancel ·½·¨
+            // TODO 1007 NioEventLoop cancel æ–¹æ³•
             if (needsToSelectAgain) {
                 selectAgain();
                 selectedKeys = selector.selectedKeys();
@@ -724,7 +725,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKeysOptimized() {
-        // ±éÀúÊı×é
+        // éå†æ•°ç»„
         for (int i = 0; i < selectedKeys.size; ++i) {
             final SelectionKey k = selectedKeys.keys[i];
             // null out entry in the array to allow to have it GC'ed once the Channel close
@@ -733,17 +734,17 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             final Object a = k.attachment();
 
-            // ´¦ÀíÒ»¸ö Channel ¾ÍĞ÷µÄ IO ÊÂ¼ş
+            // å¤„ç†ä¸€ä¸ª Channel å°±ç»ªçš„ IO äº‹ä»¶
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
-            // Ê¹ÓÃ NioTask ´¦ÀíÒ»¸ö Channel ¾ÍĞ÷µÄ IO ÊÂ¼ş
+            // ä½¿ç”¨ NioTask å¤„ç†ä¸€ä¸ª Channel å°±ç»ªçš„ IO äº‹ä»¶
             } else {
                 @SuppressWarnings("unchecked")
                 NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;
                 processSelectedKey(k, task);
             }
 
-            // TODO 1007 NioEventLoop cancel ·½·¨
+            // TODO 1007 NioEventLoop cancel æ–¹æ³•
             if (needsToSelectAgain) {
                 // null out entries in the array to allow to have it GC'ed once the Channel close
                 // See https://github.com/netty/netty/issues/2363
@@ -756,7 +757,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
-        // Èç¹û SelectionKey ÊÇ²»ºÏ·¨µÄ£¬Ôò¹Ø±Õ Channel
+        // å¦‚æœ SelectionKey æ˜¯ä¸åˆæ³•çš„ï¼Œåˆ™å…³é—­ Channel
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
             final EventLoop eventLoop;
@@ -780,66 +781,66 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         try {
-            // »ñµÃ¾ÍĞ÷µÄ IO ÊÂ¼şµÄ ops
+            // è·å¾—å°±ç»ªçš„ IO äº‹ä»¶çš„ ops
             int readyOps = k.readyOps();
 
-            // OP_CONNECT ÊÂ¼ş¾ÍĞ÷
+            // OP_CONNECT äº‹ä»¶å°±ç»ª
             // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
             // the NIO JDK channel implementation may throw a NotYetConnectedException.
             if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
-                // ÒÆ³ı¶Ô OP_CONNECT ¸ĞĞËÈ¤
+                // ç§»é™¤å¯¹ OP_CONNECT æ„Ÿå…´è¶£
                 // remove OP_CONNECT as otherwise Selector.select(..) will always return without blocking
                 // See https://github.com/netty/netty/issues/924
                 int ops = k.interestOps();
                 ops &= ~SelectionKey.OP_CONNECT;
                 k.interestOps(ops);
-                // Íê³ÉÁ¬½Ó
+                // å®Œæˆè¿æ¥
                 unsafe.finishConnect();
             }
 
-            // OP_WRITE ÊÂ¼ş¾ÍĞ÷
+            // OP_WRITE äº‹ä»¶å°±ç»ª
             // Process OP_WRITE first as we may be able to write some queued buffers and so free memory.
             if ((readyOps & SelectionKey.OP_WRITE) != 0) {
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
-                // Ïò Channel Ğ´ÈëÊı¾İ
+                // å‘ Channel å†™å…¥æ•°æ®
                 ch.unsafe().forceFlush();
             }
 
-            // SelectionKey.OP_READ »ò SelectionKey.OP_ACCEPT ¾ÍĞ÷
-            // readyOps == 0 ÊÇ¶Ô JDK Bug µÄ´¦Àí£¬·ÀÖ¹¿ÕµÄËÀÑ­»·
+            // SelectionKey.OP_READ æˆ– SelectionKey.OP_ACCEPT å°±ç»ª
+            // readyOps == 0 æ˜¯å¯¹ JDK Bug çš„å¤„ç†ï¼Œé˜²æ­¢ç©ºçš„æ­»å¾ªç¯
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 unsafe.read();
             }
         } catch (CancelledKeyException ignored) {
-            // ·¢ÉúÒì³££¬¹Ø±Õ Channel
+            // å‘ç”Ÿå¼‚å¸¸ï¼Œå…³é—­ Channel
             unsafe.close(unsafe.voidPromise());
         }
     }
 
     private static void processSelectedKey(SelectionKey k, NioTask<SelectableChannel> task) {
-        int state = 0; // Î´Ö´ĞĞ
+        int state = 0; // æœªæ‰§è¡Œ
         try {
-            // µ÷ÓÃ NioTask µÄ Channel ¾ÍĞ÷ÊÂ¼ş
+            // è°ƒç”¨ NioTask çš„ Channel å°±ç»ªäº‹ä»¶
             task.channelReady(k.channel(), k);
-            state = 1; // Ö´ĞĞ³É¹¦
+            state = 1; // æ‰§è¡ŒæˆåŠŸ
         } catch (Exception e) {
-            // SelectionKey È¡Ïû
+            // SelectionKey å–æ¶ˆ
             k.cancel();
-            // Ö´ĞĞ Channel È¡Ïû×¢²á
+            // æ‰§è¡Œ Channel å–æ¶ˆæ³¨å†Œ
             invokeChannelUnregistered(task, k, e);
-            state = 2; // Ö´ĞĞÒì³£
+            state = 2; // æ‰§è¡Œå¼‚å¸¸
         } finally {
             switch (state) {
             case 0:
-                // SelectionKey È¡Ïû
+                // SelectionKey å–æ¶ˆ
                 k.cancel();
-                // Ö´ĞĞ Channel È¡Ïû×¢²á
+                // æ‰§è¡Œ Channel å–æ¶ˆæ³¨å†Œ
                 invokeChannelUnregistered(task, k, null);
                 break;
             case 1:
-                // SelectionKey ²»ºÏ·¨£¬ÔòÖ´ĞĞ Channel È¡Ïû×¢²á
+                // SelectionKey ä¸åˆæ³•ï¼Œåˆ™æ‰§è¡Œ Channel å–æ¶ˆæ³¨å†Œ
                 if (!k.isValid()) { // Cancelled by channelReady()
                     invokeChannelUnregistered(task, k, null);
                 }
@@ -848,7 +849,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
-    // TODO ÓóÜµ TODO 1006 EventLoop ÓÅÑÅ¹Ø±Õ
+    // TODO èŠ‹è‰¿ TODO 1006 EventLoop ä¼˜é›…å…³é—­
     private void closeAll() {
         selectAgain();
         Set<SelectionKey> keys = selector.keys();

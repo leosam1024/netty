@@ -56,9 +56,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     };
 
     /**
-     * Í¨µÀ¹Ø±Õ¶ÁÈ¡£¬ÓÖ´íÎó¶ÁÈ¡µÄ´íÎóµÄ±êÊ¶
+     * é€šé“å…³é—­è¯»å–ï¼Œåˆé”™è¯¯è¯»å–çš„é”™è¯¯çš„æ ‡è¯†
      *
-     * ÏêÏ¸¼û https://github.com/netty/netty/commit/ed0668384b393c3502c2136e3cc412a5c8c9056e Ìá½»
+     * è¯¦ç»†è§ https://github.com/netty/netty/commit/ed0668384b393c3502c2136e3cc412a5c8c9056e æäº¤
      */
     private boolean inputClosedSeenErrorOnRead;
 
@@ -104,19 +104,19 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
         private void closeOnRead(ChannelPipeline pipeline) {
             if (!isInputShutdown0()) {
-                // ¿ªÆôÁ¬½Ó°ë¹Ø±Õ
+                // å¼€å¯è¿æ¥åŠå…³é—­
                 if (isAllowHalfClosure(config())) {
-                    // ¹Ø±Õ Channel Êı¾İµÄ¶ÁÈ¡
+                    // å…³é—­ Channel æ•°æ®çš„è¯»å–
                     shutdownInput();
-                    // ´¥·¢ ChannelInputShutdownEvent.INSTANCE ÊÂ¼şµ½ pipeline ÖĞ
+                    // è§¦å‘ ChannelInputShutdownEvent.INSTANCE äº‹ä»¶åˆ° pipeline ä¸­
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
                     close(voidPromise());
                 }
             } else {
-                // ±ê¼Ç inputClosedSeenErrorOnRead Îª true
+                // æ ‡è®° inputClosedSeenErrorOnRead ä¸º true
                 inputClosedSeenErrorOnRead = true;
-                // ´¥·¢ ChannelInputShutdownEvent.INSTANCE ÊÂ¼şµ½ pipeline ÖĞ
+                // è§¦å‘ ChannelInputShutdownEvent.INSTANCE äº‹ä»¶åˆ° pipeline ä¸­
                 pipeline.fireUserEventTriggered(ChannelInputShutdownReadComplete.INSTANCE);
             }
         }
@@ -125,22 +125,22 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 RecvByteBufAllocator.Handle allocHandle) {
             if (byteBuf != null) {
                 if (byteBuf.isReadable()) {
-                    // TODO ÓóÜµ Ï¸½Ú
+                    // TODO èŠ‹è‰¿ ç»†èŠ‚
                     readPending = false;
-                    // ´¥·¢ Channel read ÊÂ¼şµ½ pipeline ÖĞ¡£
+                    // è§¦å‘ Channel read äº‹ä»¶åˆ° pipeline ä¸­ã€‚
                     pipeline.fireChannelRead(byteBuf);
                 } else {
-                    // ÊÍ·Å ByteBuf ¶ÔÏó
+                    // é‡Šæ”¾ ByteBuf å¯¹è±¡
                     byteBuf.release();
                 }
             }
-            // ¶ÁÈ¡Íê³É
+            // è¯»å–å®Œæˆ
             allocHandle.readComplete();
-            // ´¥·¢ Channel readComplete ÊÂ¼şµ½ pipeline ÖĞ¡£
+            // è§¦å‘ Channel readComplete äº‹ä»¶åˆ° pipeline ä¸­ã€‚
             pipeline.fireChannelReadComplete();
-            // ´¥·¢ exceptionCaught ÊÂ¼şµ½ pipeline ÖĞ¡£
+            // è§¦å‘ exceptionCaught äº‹ä»¶åˆ° pipeline ä¸­ã€‚
             pipeline.fireExceptionCaught(cause);
-            // // TODO ÓóÜµ Ï¸½Ú
+            // // TODO èŠ‹è‰¿ ç»†èŠ‚
             if (close || cause instanceof IOException) {
                 closeOnRead(pipeline);
             }
@@ -149,70 +149,70 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         @Override
         public final void read() {
             final ChannelConfig config = config();
-            // Èô inputClosedSeenErrorOnRead = true £¬ÒÆ³ı¶Ô SelectionKey.OP_READ ÊÂ¼şµÄ¸ĞĞËÈ¤¡£
+            // è‹¥ inputClosedSeenErrorOnRead = true ï¼Œç§»é™¤å¯¹ SelectionKey.OP_READ äº‹ä»¶çš„æ„Ÿå…´è¶£ã€‚
             if (shouldBreakReadReady(config)) {
                 clearReadPending();
                 return;
             }
             final ChannelPipeline pipeline = pipeline();
             final ByteBufAllocator allocator = config.getAllocator();
-            // »ñµÃ RecvByteBufAllocator.Handle ¶ÔÏó
+            // è·å¾— RecvByteBufAllocator.Handle å¯¹è±¡
             final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
-            // ÖØÖÃ RecvByteBufAllocator.Handle ¶ÔÏó
+            // é‡ç½® RecvByteBufAllocator.Handle å¯¹è±¡
             allocHandle.reset(config);
 
             ByteBuf byteBuf = null;
-            boolean close = false; // ÊÇ·ñ¹Ø±ÕÁ¬½Ó
+            boolean close = false; // æ˜¯å¦å…³é—­è¿æ¥
             try {
                 do {
-                    // ÉêÇë ByteBuf ¶ÔÏó
+                    // ç”³è¯· ByteBuf å¯¹è±¡
                     byteBuf = allocHandle.allocate(allocator);
-                    // ¶ÁÈ¡Êı¾İ
-                    // ÉèÖÃ×îºó¶ÁÈ¡×Ö½ÚÊı
+                    // è¯»å–æ•°æ®
+                    // è®¾ç½®æœ€åè¯»å–å­—èŠ‚æ•°
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
-                    // <1> Î´¶ÁÈ¡µ½Êı¾İ
+                    // <1> æœªè¯»å–åˆ°æ•°æ®
                     if (allocHandle.lastBytesRead() <= 0) {
-                        // ÊÍ·Å ByteBuf ¶ÔÏó
+                        // é‡Šæ”¾ ByteBuf å¯¹è±¡
                         // nothing was read. release the buffer.
                         byteBuf.release();
-                        // ÖÃ¿Õ ByteBuf ¶ÔÏó
+                        // ç½®ç©º ByteBuf å¯¹è±¡
                         byteBuf = null;
-                        // Èç¹û×îºó¶ÁÈ¡µÄ×Ö½ÚÎªĞ¡ÓÚ 0 £¬ËµÃ÷¶Ô¶ËÒÑ¾­¹Ø±Õ
+                        // å¦‚æœæœ€åè¯»å–çš„å­—èŠ‚ä¸ºå°äº 0 ï¼Œè¯´æ˜å¯¹ç«¯å·²ç»å…³é—­
                         close = allocHandle.lastBytesRead() < 0;
                         // TODO
                         if (close) {
                             // There is nothing left to read as we received an EOF.
                             readPending = false;
                         }
-                        // ½áÊøÑ­»·
+                        // ç»“æŸå¾ªç¯
                         break;
                     }
 
-                    // <2> ¶ÁÈ¡µ½Êı¾İ
+                    // <2> è¯»å–åˆ°æ•°æ®
 
-                    // ¶ÁÈ¡ÏûÏ¢ÊıÁ¿ + localRead
+                    // è¯»å–æ¶ˆæ¯æ•°é‡ + localRead
                     allocHandle.incMessagesRead(1);
-                    // TODO ÓóÜµ readPending
+                    // TODO èŠ‹è‰¿ readPending
                     readPending = false;
-                    // ´¥·¢ Channel read ÊÂ¼şµ½ pipeline ÖĞ¡£ TODO
+                    // è§¦å‘ Channel read äº‹ä»¶åˆ° pipeline ä¸­ã€‚ TODO
                     pipeline.fireChannelRead(byteBuf);
-                    // ÖÃ¿Õ ByteBuf ¶ÔÏó
+                    // ç½®ç©º ByteBuf å¯¹è±¡
                     byteBuf = null;
-                } while (allocHandle.continueReading()); // Ñ­»·ÅĞ¶ÏÊÇ·ñ¼ÌĞø¶ÁÈ¡
+                } while (allocHandle.continueReading()); // å¾ªç¯åˆ¤æ–­æ˜¯å¦ç»§ç»­è¯»å–
 
-                // ¶ÁÈ¡Íê³É
+                // è¯»å–å®Œæˆ
                 allocHandle.readComplete();
-                // ´¥·¢ Channel readComplete ÊÂ¼şµ½ pipeline ÖĞ¡£
+                // è§¦å‘ Channel readComplete äº‹ä»¶åˆ° pipeline ä¸­ã€‚
                 pipeline.fireChannelReadComplete();
 
-                // TODO ÓóÜµ Ï¸½Ú
+                // TODO èŠ‹è‰¿ ç»†èŠ‚
                 if (close) {
                     closeOnRead(pipeline);
                 }
             } catch (Throwable t) {
                 handleReadException(pipeline, byteBuf, t, close, allocHandle);
             } finally {
-                // TODO ÓóÜµ readPending
+                // TODO èŠ‹è‰¿ readPending
                 // Check if there is a readPending which was not processed yet.
                 // This could be for two reasons:
                 // * The user called Channel.read() or ChannelHandlerContext.read() in channelRead(...) method
@@ -306,33 +306,34 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
     @Override
     protected final Object filterOutboundMessage(Object msg) {
-        // ByteBuf µÄÇé¿ö
+        // ByteBuf çš„æƒ…å†µ
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
-            // ÒÑ¾­ÊÇ Direct ByteBuf
+            // å·²ç»æ˜¯ Direct ByteBuf
             if (buf.isDirect()) {
                 return msg;
             }
 
-            // ·Ç Direct ByteBuf £¬ĞèÒª½øĞĞ´´½¨·â×°
+            // é Direct ByteBuf ï¼Œéœ€è¦è¿›è¡Œåˆ›å»ºå°è£…
             return newDirectBuffer(buf);
         }
 
-        // FileRegion µÄÇé¿ö
+        // FileRegion çš„æƒ…å†µ
         if (msg instanceof FileRegion) {
             return msg;
         }
 
-        // ²»Ö§³ÖÆäËûÀàĞÍ
+        // ä¸æ”¯æŒå…¶ä»–ç±»å‹
+        throw new UnsupportedOperationException(
                 "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     }
 
     protected final void incompleteWrite(boolean setOpWrite) {
         // Did not write completely.
-        // true £¬×¢²á¶Ô SelectionKey.OP_WRITE ÊÂ¼ş¸ĞĞËÈ¤
+        // true ï¼Œæ³¨å†Œå¯¹ SelectionKey.OP_WRITE äº‹ä»¶æ„Ÿå…´è¶£
         if (setOpWrite) {
             setOpWrite();
-        // false £¬È¡Ïû¶Ô SelectionKey.OP_WRITE ÊÂ¼ş¸ĞĞËÈ¤
+        // false ï¼Œå–æ¶ˆå¯¹ SelectionKey.OP_WRITE äº‹ä»¶æ„Ÿå…´è¶£
         } else {
             // It is possible that we have set the write OP, woken up by NIO because the socket is writable, and then
             // use our write quantum. In this case we no longer want to set the write OP because the socket is still
@@ -341,7 +342,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             clearOpWrite();
 
             // Schedule flush again later so other tasks can be picked up in the meantime
-            // Á¢¼´·¢ÆğÏÂÒ»´Î flush ÈÎÎñ
+            // ç«‹å³å‘èµ·ä¸‹ä¸€æ¬¡ flush ä»»åŠ¡
             eventLoop().execute(flushTask);
         }
     }
@@ -371,11 +372,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         // Check first if the key is still valid as it may be canceled as part of the deregistration
         // from the EventLoop
         // See https://github.com/netty/netty/issues/2104
-        if (!key.isValid()) { // ºÏ·¨
+        if (!key.isValid()) { // åˆæ³•
             return;
         }
         final int interestOps = key.interestOps();
-        // ×¢²á SelectionKey.OP_WRITE ÊÂ¼şµÄ¸ĞĞËÈ¤
+        // æ³¨å†Œ SelectionKey.OP_WRITE äº‹ä»¶çš„æ„Ÿå…´è¶£
         if ((interestOps & SelectionKey.OP_WRITE) == 0) {
             key.interestOps(interestOps | SelectionKey.OP_WRITE);
         }
@@ -386,11 +387,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         // Check first if the key is still valid as it may be canceled as part of the deregistration
         // from the EventLoop
         // See https://github.com/netty/netty/issues/2104
-        if (!key.isValid()) { // ºÏ·¨
+        if (!key.isValid()) { // åˆæ³•
             return;
         }
         final int interestOps = key.interestOps();
-        // Èô×¢²áÁË SelectionKey.OP_WRITE £¬Ôò½øĞĞÈ¡Ïû
+        // è‹¥æ³¨å†Œäº† SelectionKey.OP_WRITE ï¼Œåˆ™è¿›è¡Œå–æ¶ˆ
         if ((interestOps & SelectionKey.OP_WRITE) != 0) {
             key.interestOps(interestOps & ~SelectionKey.OP_WRITE);
         }
