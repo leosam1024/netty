@@ -32,7 +32,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
 /**
- * NioEventLoop 的分组实现类
+ * NioEventLoop 鐨勫垎缁勫疄鐜扮被
  *
  * {@link MultithreadEventLoopGroup} implementations which is used for NIO {@link Selector} based {@link Channel}s.
  */

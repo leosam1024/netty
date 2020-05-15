@@ -56,6 +56,7 @@ public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandl
      * see {@link #SimpleChannelInboundHandler(boolean)} with {@code true} as boolean parameter.
      */
     protected SimpleChannelInboundHandler() {
+        // 默认会释放资源
         this(true);
     }
 
@@ -107,7 +108,7 @@ public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandl
             if (acceptInboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I imsg = (I) msg;
-                // 处理消息
+                // 处理消息 需要客户端自己实现
                 channelRead0(ctx, imsg);
             } else {
                 // 不需要释放消息

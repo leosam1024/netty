@@ -58,7 +58,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     private final class NioMessageUnsafe extends AbstractNioUnsafe {
 
         /**
-         * ĞÂ¶ÁÈ¡µÄ¿Í»§¶ËÁ¬½ÓÊı×é
+         * æ–°è¯»å–çš„å®¢æˆ·ç«¯è¿æ¥æ•°ç»„
          */
         private final List<Object> readBuf = new ArrayList<Object>();
 
@@ -67,9 +67,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             assert eventLoop().inEventLoop();
             final ChannelConfig config = config();
             final ChannelPipeline pipeline = pipeline();
-            // »ñµÃ RecvByteBufAllocator.Handle ¶ÔÏó
+            // è·å¾— RecvByteBufAllocator.Handle å¯¹è±¡
             final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
-            // ÖØÖÃ RecvByteBufAllocator.Handle ¶ÔÏó
+            // é‡ç½® RecvByteBufAllocator.Handle å¯¹è±¡
             allocHandle.reset(config);
 
             boolean closed = false;
@@ -77,47 +77,47 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
-                        // ¶ÁÈ¡¿Í»§¶ËµÄÁ¬½Óµ½ readBuf ÖĞ
+                        // è¯»å–å®¢æˆ·ç«¯çš„è¿æ¥åˆ° readBuf ä¸­
                         int localRead = doReadMessages(readBuf);
-                        // ÎŞ¿É¶ÁÈ¡µÄ¿Í»§¶ËµÄÁ¬½Ó£¬½áÊø
+                        // æ— å¯è¯»å–çš„å®¢æˆ·ç«¯çš„è¿æ¥ï¼Œç»“æŸ
                         if (localRead == 0) {
                             break;
                         }
-                        // ¶ÁÈ¡³ö´í
+                        // è¯»å–å‡ºé”™
                         if (localRead < 0) {
-                            closed = true; // ±ê¼Ç¹Ø±Õ
+                            closed = true; // æ ‡è®°å…³é—­
                             break;
                         }
 
-                        // ¶ÁÈ¡ÏûÏ¢ÊıÁ¿ + localRead
+                        // è¯»å–æ¶ˆæ¯æ•°é‡ + localRead
                         allocHandle.incMessagesRead(localRead);
-                    } while (allocHandle.continueReading()); // Ñ­»·ÅĞ¶ÏÊÇ·ñ¼ÌĞø¶ÁÈ¡
+                    } while (allocHandle.continueReading()); // å¾ªç¯åˆ¤æ–­æ˜¯å¦ç»§ç»­è¯»å–
                 } catch (Throwable t) {
-                    // ¼ÇÂ¼Òì³£
+                    // è®°å½•å¼‚å¸¸
                     exception = t;
                 }
 
-                // Ñ­»· readBuf Êı×é£¬´¥·¢ Channel read ÊÂ¼şµ½ pipeline ÖĞ¡£
+                // å¾ªç¯ readBuf æ•°ç»„ï¼Œè§¦å‘ Channel read äº‹ä»¶åˆ° pipeline ä¸­ã€‚
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
-                    // TODO ÓóÜµ
+                    // TODO èŠ‹è‰¿
                     readPending = false;
-                    // ÔÚÄÚ²¿£¬»áÍ¨¹ı ServerBootstrapAcceptor £¬½«¿Í»§¶ËµÄ Netty NioSocketChannel ×¢²áµ½ EventLoop ÉÏ
+                    // åœ¨å†…éƒ¨ï¼Œä¼šé€šè¿‡ ServerBootstrapAcceptor ï¼Œå°†å®¢æˆ·ç«¯çš„ Netty NioSocketChannel æ³¨å†Œåˆ° EventLoop ä¸Š
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
-                // Çå¿Õ readBuf Êı×é
+                // æ¸…ç©º readBuf æ•°ç»„
                 readBuf.clear();
-                // ¶ÁÈ¡Íê³É
+                // è¯»å–å®Œæˆ
                 allocHandle.readComplete();
-                // ´¥·¢ Channel readComplete ÊÂ¼şµ½ pipeline ÖĞ¡£
+                // è§¦å‘ Channel readComplete äº‹ä»¶åˆ° pipeline ä¸­ã€‚
                 pipeline.fireChannelReadComplete();
 
-                // ·¢ÉúÒì³£
+                // å‘ç”Ÿå¼‚å¸¸
                 if (exception != null) {
-                    // ÅĞ¶ÏÊÇ·ñÒª¹Ø±Õ TODO ÓóÜµ
+                    // åˆ¤æ–­æ˜¯å¦è¦å…³é—­ TODO èŠ‹è‰¿
                     closed = closeOnReadError(exception);
 
-                    // ´¥·¢ exceptionCaught ÊÂ¼şµ½ pipeline ÖĞ¡£
+                    // è§¦å‘ exceptionCaught äº‹ä»¶åˆ° pipeline ä¸­ã€‚
                     pipeline.fireExceptionCaught(exception);
                 }
 

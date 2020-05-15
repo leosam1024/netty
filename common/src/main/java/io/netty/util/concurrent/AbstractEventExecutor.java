@@ -29,6 +29,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 实现 EventExecutor 接口，继承 AbstractExecutorService 抽象类，EventExecutor 抽象类。
  * Abstract base class for {@link EventExecutor} implementations.
  */
 public abstract class AbstractEventExecutor extends AbstractExecutorService implements EventExecutor {
@@ -60,16 +61,28 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         this.parent = parent;
     }
 
+    /**
+     * 获得所属 EventExecutorGroup
+     * @return
+     */
     @Override
     public EventExecutorGroup parent() {
         return parent;
     }
 
+    /**
+     * 方法，获得自己
+     * @return
+     */
     @Override
     public EventExecutor next() {
         return this;
     }
 
+    /**
+     * 判断当前线程是否在 EventLoop 线程中
+     * @return
+     */
     @Override
     public boolean inEventLoop() {
         return inEventLoop(Thread.currentThread());
@@ -93,6 +106,7 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
     public abstract void shutdown();
 
     /**
+     * 关闭执行器。代码如下
      * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
      */
     @Override
@@ -104,24 +118,35 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
 
     @Override
     public <V> Promise<V> newPromise() {
+        // 创建的 Promise 对象，都会传入自身作为 EventExecutor
         return new DefaultPromise<V>(this);
     }
 
     @Override
     public <V> ProgressivePromise<V> newProgressivePromise() {
+        // 创建的 Promise 对象，都会传入自身作为 EventExecutor
         return new DefaultProgressivePromise<V>(this);
     }
 
     @Override
     public <V> Future<V> newSucceededFuture(V result) {
+        // 分别创建成功结果的 Future 对象
+        // 创建的 Future 对象，会传入自身作为 EventExecutor ，并传入 result 或 cause 分别作为成功结果和异常。
         return new SucceededFuture<V>(this, result);
     }
 
     @Override
     public <V> Future<V> newFailedFuture(Throwable cause) {
+        // 分别创建异常的 Future 对象
+        // 创建的 Future 对象，会传入自身作为 EventExecutor ，并传入 result 或 cause 分别作为成功结果和异常。
         return new FailedFuture<V>(this, cause);
     }
 
+    /**
+     * 提交任务。代码如下
+     * @param task
+     * @return
+     */
     @Override
     public Future<?> submit(Runnable task) {
         return (Future<?>) super.submit(task);
@@ -147,6 +172,9 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return new PromiseTask<T>(this, callable);
     }
 
+    /**
+     * #schedule(...) 方法，都不支持，交给子类 AbstractScheduledEventExecutor 实现。
+     */
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay,
                                        TimeUnit unit) {
@@ -169,6 +197,8 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
     }
 
     /**
+     * 静态方法，安全的执行任务
+     * 所谓“安全”指的是，当任务执行发生异常时，仅仅打印告警日志。
      * Try to execute the given {@link Runnable} and just log if it throws a {@link Throwable}.
      */
     protected static void safeExecute(Runnable task) {
