@@ -16,6 +16,11 @@
 package io.netty.util;
 
 /**
+ * 对象引用计数器接口。
+ *
+ * 对象的初始引用计数为 1 。
+ * 当引用计数器值为 0 时，表示该对象不能再被继续引用，只能被释放。
+ *
  * A reference-counted object that requires explicit deallocation.
  * <p>
  * When a new {@link ReferenceCounted} is instantiated, it starts with the reference count of {@code 1}.

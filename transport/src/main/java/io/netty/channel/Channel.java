@@ -28,6 +28,20 @@ import java.net.SocketAddress;
 
 
 /**
+ * 实现 AttributeMap、ChannelOutboundInvoker、Comparable 接口，Netty Channel 接口。
+ *
+ * Channel 是 Netty 网络操作抽象类，它除了包括基本的 I/O 操作，
+ * 如 bind、connect、read、write 之外，还包括了 Netty 框架相关的一些功能，如获取该 Channel 的 EventLoop 。
+ *
+ * 在传统的网络编程中，作为核心类的 Socket ，它对程序员来说并不是那么友好，直接使用其成本还是稍微高了点。
+ * 而 Netty 的 Channel 则提供的一系列的 API ，它大大降低了直接与 Socket 进行操作的复杂性。
+ * 而相对于原生 NIO 的 Channel，Netty 的 Channel 具有如下优势( 摘自《Netty权威指南( 第二版 )》) ：
+ *
+ * 在 Channel 接口层，采用 Facade 模式进行统一封装，将网络 I/O 操作、网络 I/O 相关联的其他操作封装起来，统一对外提供。
+ * Channel 接口的定义尽量大而全，为 SocketChannel 和 ServerSocketChannel 提供统一的视图，
+ * 由不同子类实现不同的功能，公共功能在抽象父类中实现，最大程度地实现功能和接口的重用。
+ * 具体实现采用聚合而非包含的方式，将相关的功能类聚合在 Channel 中，由 Channel 统一负责和调度，功能实现更加灵活。
+ *
  * A nexus to a network socket or a component which is capable of I/O
  * operations such as read, write, connect, and bind.
  * <p>
@@ -228,6 +242,12 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     Channel flush();
 
     /**
+     * 定义在在 io.netty.channel.Channel 内部，和 Channel 的操作紧密结合，
+     * 直译中文为“不安全”，
+     * 就是告诉我们，无需且不必要在我们使用 Netty 的代码中，不能直接调用 Unsafe 相关的方法。
+     *
+     * 对于 Channel 和 Unsafe 来说，类名中包含 Byte 是属于客户端的，Message 是属于服务端的。
+     *
      * <em>Unsafe</em> operations that should <em>never</em> be called from user-code. These methods
      * are only provided to implement the actual transport, and must be invoked from an I/O thread except for the
      * following methods:

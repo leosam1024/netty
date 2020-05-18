@@ -733,6 +733,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // 处理一个 Channel 就绪的 IO 事件
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {
+            // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
                 // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
                 @SuppressWarnings("unchecked")
                 NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;

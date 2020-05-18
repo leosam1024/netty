@@ -25,6 +25,20 @@ import io.netty.util.concurrent.EventExecutor;
 import java.nio.channels.Channels;
 
 /**
+ * 继承
+ * ChannelInboundInvoker、
+ * ChannelOutboundInvoker、
+ * AttributeMap 接口，
+ * ChannelHandler Context( 上下文 )接口，
+ * 作为 ChannelPipeline 中的节点。
+ *
+ * 归类如下：
+ *
+ * Context 相关的接口方法。
+ * 继承自 ChannelInboundInvoker 的相关方法，和 ChannelPipeline 一样。
+ * 继承自 ChannelOutboundInvoker 的相关方法，和 ChannelPipeline 一样。
+ * 继承自 AttributeMap 的相关方法，实际上已经废弃( @Deprecated )了，不再从 ChannelHandlerContext 中获取，而是从 Channel 中获取。
+ *
  * Enables a {@link ChannelHandler} to interact with its {@link ChannelPipeline}
  * and other handlers. Among other things a handler can notify the next {@link ChannelHandler} in the
  * {@link ChannelPipeline} as well as modify the {@link ChannelPipeline} it belongs to dynamically.
@@ -124,6 +138,7 @@ import java.nio.channels.Channels;
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
+    // ========== Context 相关 ==========
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
      */
@@ -153,6 +168,7 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      */
     boolean isRemoved();
 
+    // ========== ChannelInboundInvoker 相关 ==========
     @Override
     ChannelHandlerContext fireChannelRegistered();
 
@@ -180,6 +196,7 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
     @Override
     ChannelHandlerContext fireChannelWritabilityChanged();
 
+    // ========== ChannelOutboundInvoker 相关 ==========
     @Override
     ChannelHandlerContext read();
 
@@ -191,11 +208,13 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      */
     ChannelPipeline pipeline();
 
+    // ========== ByteBuf 相关 ==========
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
      */
     ByteBufAllocator alloc();
 
+    // ========== AttributeMap 相关 ==========
     /**
      * @deprecated Use {@link Channel#attr(AttributeKey)}
      */
