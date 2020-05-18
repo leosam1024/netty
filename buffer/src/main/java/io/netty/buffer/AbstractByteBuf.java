@@ -332,6 +332,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    /**
+     * 保证可写
+     * @param minWritableBytes
+     *        the expected minimum number of writable bytes
+     * @return
+     */
     @Override
     public ByteBuf ensureWritable(int minWritableBytes) {
         ensureWritable0(checkPositiveOrZero(minWritableBytes, "minWritableBytes"));
@@ -366,6 +372,22 @@ public abstract class AbstractByteBuf extends ByteBuf {
         capacity(newCapacity);
     }
 
+    /**
+     * 和 #ensureWritable(int minWritableBytes) 方法，有两点不同：
+     *
+     * 超过最大容量的上限时，不会抛出 IndexOutOfBoundsException 异常。
+     * 根据执行的过程不同，返回不同的返回值。
+     *
+     * @param minWritableBytes
+     *        the expected minimum number of writable bytes
+     * @param force
+     *        When {@link #writerIndex()} + {@code minWritableBytes} &gt; {@link #maxCapacity()}:
+     *        <ul>
+     *        <li>{@code true} - the capacity of the buffer is expanded to {@link #maxCapacity()}</li>
+     *        <li>{@code false} - the capacity of the buffer is unchanged</li>
+     *        </ul>
+     * @return
+     */
     @Override
     public int ensureWritable(int minWritableBytes, boolean force) {
         // 检查是否可访问
