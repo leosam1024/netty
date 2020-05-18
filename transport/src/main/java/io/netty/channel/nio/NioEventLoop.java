@@ -219,6 +219,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 创建 Selector 对象
+     * @return
+     */
     private SelectorTuple openSelector() {
         // 创建 Selector 对象，作为 unwrappedSelector
         final Selector unwrappedSelector;
@@ -261,10 +265,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
 
-        // 创建 SelectedSelectionKeySet 对象
+        // 创建 SelectedSelectionKeySet 对象 这是 Netty 对 Selector 的 selectionKeys 的优化。
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
 
-        // 设置 SelectedSelectionKeySet 对象到 unwrappedSelector 中
+        // 设置 SelectedSelectionKeySet 对象到 unwrappedSelector 中的 selectedKeys 和 publicSelectedKeys 属性
         Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -345,6 +349,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
+     * 注册 Java NIO Channel ( 不一定需要通过 Netty 创建的 Channel )到 Selector 上，
+     * 相当于说，也注册到了 EventLoop 上。
+     *
+     * 这里我们可以看到，attachment 为 NioTask 对象，而不是 Netty Channel 对象。
+     *
      * Registers an arbitrary {@link SelectableChannel}, not necessarily created by Netty, to the {@link Selector}
      * of this event loop.  Once the specified {@link SelectableChannel} is registered, the specified {@code task} will
      * be executed by this event loop when the {@link SelectableChannel} is ready.
@@ -412,20 +421,25 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
+     * 重建 Selector 对象
+     * 该方法用于 NIO Selector 发生 epoll bug 时，重建 Selector 对象。
+     *
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work
      * around the infamous epoll 100% CPU bug.
      */
     public void rebuildSelector() {
-        // 只允许在 EventLoop 的线程中执行
+        // 只允许在 EventLoop 的线程中执行,调用 #rebuildSelector0() 方法，重建 Selector 对象。
         if (!inEventLoop()) {
             execute(new Runnable() {
                 @Override
                 public void run() {
+                    // 重建 Selector 对象
                     rebuildSelector0();
                 }
             });
             return;
         }
+        // 重建 Selector 对象
         rebuildSelector0();
     }
 
@@ -434,6 +448,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return selector.keys().size() - cancelledKeys;
     }
 
+    /**
+     * 重建 Selector 对象
+     *
+     * 总的来说，#rebuildSelector() 方法，相比 #openSelector() 方法，
+     * 主要是需要将老的 Selector 对象的“数据”复制到新的 Selector 对象上，并关闭老的 Selector 对象。
+     *
+     */
     private void rebuildSelector0() {
         final Selector oldSelector = selector;
         final SelectorTuple newSelectorTuple;
@@ -442,6 +463,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             return;
         }
 
+        // 创建新的 Selector 对象
         try {
             newSelectorTuple = openSelector();
         } catch (Exception e) {
@@ -555,7 +577,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 boolean ranTasks;
                 if (ioRatio == 100) {
                     try {
-					// 处理 Channel 感兴趣的就绪 IO 事件
+                        // 处理 Channel 感兴趣的就绪 IO 事件
                         if (strategy > 0) {
                             processSelectedKeys();
                         }
@@ -651,10 +673,17 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 在 #run() 方法中，会调用 #processSelectedKeys() 方法，
+     * 处理 Channel 新增就绪的 IO 事件。代码如下：
+     */
     private void processSelectedKeys() {
+        // 当 selectedKeys 非空，意味着使用优化的 SelectedSelectionKeySetSelector ，
+        // 所以调用 #processSelectedKeysOptimized() 方法；
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
+            // 否则，调用 #processSelectedKeysPlain() 方法。
             processSelectedKeysPlain(selector.selectedKeys());
         }
     }
@@ -677,6 +706,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 基于 Java NIO 原生 Selecotr ，处理 Channel 新增就绪的 IO 事件
+     * 总体和 #processSelectedKeysOptimized() 方法类似。
+     * @param selectedKeys
+     */
     private void processSelectedKeysPlain(Set<SelectionKey> selectedKeys) {
         // check if the set is empty and if so just return to not create garbage by
         // creating a new Iterator every time even if there is nothing to process.
@@ -696,9 +730,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // 处理一个 Channel 就绪的 IO 事件
             if (a instanceof AbstractNioChannel) {
+                // 处理一个 Channel 就绪的 IO 事件
                 processSelectedKey(k, (AbstractNioChannel) a);
-            // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
             } else {
+                // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
                 @SuppressWarnings("unchecked")
                 NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;
                 processSelectedKey(k, task);
@@ -724,8 +759,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 基于 Netty SelectedSelectionKeySetSelector ，处理 Channel 新增就绪的 IO 事件。
+     * 从方法名，我们也可以看出，这是个经过优化的实现。
+     */
     private void processSelectedKeysOptimized() {
-        // 遍历数组
+        // 循环 selectedKeys 数组。
         for (int i = 0; i < selectedKeys.size; ++i) {
             final SelectionKey k = selectedKeys.keys[i];
             // null out entry in the array to allow to have it GC'ed once the Channel close
@@ -737,8 +776,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // 处理一个 Channel 就绪的 IO 事件
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
-            // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
             } else {
+                // 使用 NioTask 处理一个 Channel 就绪的 IO 事件
+                // 当 attachment 是 Netty NioTask 时，
                 @SuppressWarnings("unchecked")
                 NioTask<SelectableChannel> task = (NioTask<SelectableChannel>) a;
                 processSelectedKey(k, task);
@@ -746,6 +786,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // TODO 1007 NioEventLoop cancel 方法
             if (needsToSelectAgain) {
+                // 置空，防止内存泄露 加快回收
                 // null out entries in the array to allow to have it GC'ed once the Channel close
                 // See https://github.com/netty/netty/issues/2363
                 selectedKeys.reset(i + 1);
@@ -756,6 +797,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 处理一个 Channel 就绪的 IO 事件
+     * @param k
+     * @param ch
+     */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
         // 如果 SelectionKey 是不合法的，则关闭 Channel
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
@@ -808,6 +854,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // SelectionKey.OP_READ 或 SelectionKey.OP_ACCEPT 就绪
             // readyOps == 0 是对 JDK Bug 的处理，防止空的死循环
+            //处理读或者者接受客户端连接的事件。
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
@@ -819,6 +866,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 处理一个 Channel 就绪的 IO 事件。
+     * state 有 3 种情况：
+     * state 0 未执行
+     * state 1 执行成功
+     * state 2 执行异常
+     * @param k
+     * @param task
+     */
     private static void processSelectedKey(SelectionKey k, NioTask<SelectableChannel> task) {
         int state = 0; // 未执行
         try {
@@ -849,7 +905,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
-    // TODO 芋艿 TODO 1006 EventLoop 优雅关闭
+    // TODO  TODO 1006 EventLoop 优雅关闭
     private void closeAll() {
         selectAgain();
         Set<SelectionKey> keys = selector.keys();

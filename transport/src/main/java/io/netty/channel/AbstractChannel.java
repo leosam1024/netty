@@ -1041,7 +1041,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
-                // TODO 芋艿 细节
+                // TODO  细节
                 if (t instanceof IOException && config().isAutoClose()) {
                     /**
                      * Just call {@link #close(ChannelPromise, Throwable, boolean)} here which will take care of

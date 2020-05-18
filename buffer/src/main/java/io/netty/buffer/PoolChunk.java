@@ -108,77 +108,76 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
     /**
-     * ËùÊô Arena ¶ÔÏó
+     * æ‰€å± Arena å¯¹è±¡
      */
     final PoolArena<T> arena;
     /**
-     * ÄÚ´æ¿Õ¼ä¡£
+     * å†…å­˜ç©ºé—´ã€‚
      *
      * @see PooledByteBuf#memory
      */
     final T memory;
     /**
-     * ÊÇ·ñ·Ç³Ø»¯
+     * æ˜¯å¦éæ± åŒ–
      *
-     * @see #PoolChunk(PoolArena, Object, int, int) ·Ç³Ø»¯¡£µ±ÉêÇëµÄÄÚ´æ´óĞ¡Îª Huge ÀàĞÍÊ±£¬´´½¨Ò»Õû¿é Chunk £¬²¢ÇÒ²»²ğ·Ö³ÉÈô¸É Page
-     * @see #PoolChunk(PoolArena, Object, int, int, int, int, int) ³Ø»¯
+     * @see #PoolChunk(PoolArena, Object, int, int) éæ± åŒ–ã€‚å½“ç”³è¯·çš„å†…å­˜å¤§å°ä¸º Huge ç±»å‹æ—¶ï¼Œåˆ›å»ºä¸€æ•´å— Chunk ï¼Œå¹¶ä¸”ä¸æ‹†åˆ†æˆè‹¥å¹² Page
+     * @see #PoolChunk(PoolArena, Object, int, int, int, int, int) æ± åŒ–
      */
     final boolean unpooled;
     /**
-     * TODO ÓóÜµ
      */
     final int offset;
 
     /**
-     * ·ÖÅäĞÅÏ¢Âú¶ş²æÊ÷
+     * åˆ†é…ä¿¡æ¯æ»¡äºŒå‰æ ‘
      *
-     * index Îª½Úµã±àºÅ
+     * index ä¸ºèŠ‚ç‚¹ç¼–å·
      */
     private final byte[] memoryMap;
     /**
-     * ¸ß¶ÈĞÅÏ¢Âú¶ş²æÊ÷
+     * é«˜åº¦ä¿¡æ¯æ»¡äºŒå‰æ ‘
      *
-     * index Îª½Úµã±àºÅ
+     * index ä¸ºèŠ‚ç‚¹ç¼–å·
      */
     private final byte[] depthMap;
     /**
-     * PoolSubpage Êı×é
+     * PoolSubpage æ•°ç»„
      */
     private final PoolSubpage<T>[] subpages;
     /**
-     * ÅĞ¶Ï·ÖÅäÇëÇóÄÚ´æÊÇ·ñÎª Tiny/Small £¬¼´·ÖÅä Subpage ÄÚ´æ¿é¡£
+     * åˆ¤æ–­åˆ†é…è¯·æ±‚å†…å­˜æ˜¯å¦ä¸º Tiny/Small ï¼Œå³åˆ†é… Subpage å†…å­˜å—ã€‚
      *
      * Used to determine if the requested capacity is equal to or greater than pageSize.
      */
     private final int subpageOverflowMask;
     /**
-     * Page ´óĞ¡£¬Ä¬ÈÏ 8KB = 8192B
+     * Page å¤§å°ï¼Œé»˜è®¤ 8KB = 8192B
      */
     private final int pageSize;
     /**
-     * ´Ó 1 ¿ªÊ¼×óÒÆµ½ {@link #pageSize} µÄÎ»Êı¡£Ä¬ÈÏ 13 £¬1 << 13 = 8192 ¡£
+     * ä» 1 å¼€å§‹å·¦ç§»åˆ° {@link #pageSize} çš„ä½æ•°ã€‚é»˜è®¤ 13 ï¼Œ1 << 13 = 8192 ã€‚
      *
-     * ¾ßÌåÓÃÍ¾£¬¼û {@link #allocateRun(int)} ·½·¨£¬¼ÆËãÖ¸¶¨ÈİÁ¿ËùÔÚÂú¶ş²æÊ÷µÄ²ã¼¶¡£
+     * å…·ä½“ç”¨é€”ï¼Œè§ {@link #allocateRun(int)} æ–¹æ³•ï¼Œè®¡ç®—æŒ‡å®šå®¹é‡æ‰€åœ¨æ»¡äºŒå‰æ ‘çš„å±‚çº§ã€‚
      */
     private final int pageShifts;
     /**
-     * Âú¶ş²æÊ÷µÄ¸ß¶È¡£Ä¬ÈÏÎª 11 ¡£
+     * æ»¡äºŒå‰æ ‘çš„é«˜åº¦ã€‚é»˜è®¤ä¸º 11 ã€‚
      */
     private final int maxOrder;
     /**
-     * Chunk ÄÚ´æ¿éÕ¼ÓÃ´óĞ¡¡£Ä¬ÈÏÎª 16M = 16 * 1024  ¡£
+     * Chunk å†…å­˜å—å ç”¨å¤§å°ã€‚é»˜è®¤ä¸º 16M = 16 * 1024  ã€‚
      */
     private final int chunkSize;
     /**
-     * log2 {@link #chunkSize} µÄ½á¹û¡£Ä¬ÈÏÎª log2( 16M ) = 24 ¡£
+     * log2 {@link #chunkSize} çš„ç»“æœã€‚é»˜è®¤ä¸º log2( 16M ) = 24 ã€‚
      */
     private final int log2ChunkSize;
     /**
-     * ¿É·ÖÅä {@link #subpages} µÄÊıÁ¿£¬¼´Êı×é´óĞ¡¡£Ä¬ÈÏÎª 1 << maxOrder = 1 << 11 = 2048 ¡£
+     * å¯åˆ†é… {@link #subpages} çš„æ•°é‡ï¼Œå³æ•°ç»„å¤§å°ã€‚é»˜è®¤ä¸º 1 << maxOrder = 1 << 11 = 2048 ã€‚
      */
     private final int maxSubpageAllocs;
     /**
-     * ±ê¼Ç½Úµã²»¿ÉÓÃ¡£Ä¬ÈÏÎª maxOrder + 1 = 12 ¡£
+     * æ ‡è®°èŠ‚ç‚¹ä¸å¯ç”¨ã€‚é»˜è®¤ä¸º maxOrder + 1 = 12 ã€‚
      *
      * Used to mark memory as unusable
      */
@@ -194,15 +193,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
     int freeBytes;
 
     /**
-     * ËùÊô PoolChunkList ¶ÔÏó
+     * æ‰€å± PoolChunkList å¯¹è±¡
      */
     PoolChunkList<T> parent;
     /**
-     * ÉÏÒ»¸ö Chunk ¶ÔÏó
+     * ä¸Šä¸€ä¸ª Chunk å¯¹è±¡
      */
     PoolChunk<T> prev;
     /**
-     * ÏÂÒ»¸ö Chunk ¶ÔÏó
+     * ä¸‹ä¸€ä¸ª Chunk å¯¹è±¡
      */
     PoolChunk<T> next;
 
@@ -210,7 +209,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     //private long pad0, pad1, pad2, pad3, pad4, pad5, pad6, pad7;
 
     PoolChunk(PoolArena<T> arena, T memory, int pageSize, int maxOrder, int pageShifts, int chunkSize, int offset) {
-        // ³Ø»¯
+        // æ± åŒ–
         unpooled = false;
         this.arena = arena;
         this.memory = memory;
@@ -227,7 +226,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         assert maxOrder < 30 : "maxOrder should be < 30, but is: " + maxOrder;
         maxSubpageAllocs = 1 << maxOrder;
 
-        // ³õÊ¼»¯ memoryMap ºÍ depthMap
+        // åˆå§‹åŒ– memoryMap å’Œ depthMap
         // Generate the memory map.
         memoryMap = new byte[maxSubpageAllocs << 1];
         depthMap = new byte[memoryMap.length];
@@ -242,14 +241,14 @@ final class PoolChunk<T> implements PoolChunkMetric {
             }
         }
 
-        // ³õÊ¼»¯ subpages
+        // åˆå§‹åŒ– subpages
         subpages = newSubpageArray(maxSubpageAllocs);
         cachedNioBuffers = new ArrayDeque<ByteBuffer>(8);
     }
 
     /** Creates a special chunk that is not pooled. */
     PoolChunk(PoolArena<T> arena, T memory, int size, int offset) {
-        // ·Ç³Ø»¯
+        // éæ± åŒ–
         unpooled = true;
         this.arena = arena;
         this.memory = memory;
@@ -283,12 +282,12 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     private int usage(int freeBytes) {
-        // È«²¿Ê¹ÓÃ£¬100%
+        // å…¨éƒ¨ä½¿ç”¨ï¼Œ100%
         if (freeBytes == 0) {
             return 100;
         }
 
-        // ²¿·ÖÊ¹ÓÃ£¬×î¸ß 99%
+        // éƒ¨åˆ†ä½¿ç”¨ï¼Œæœ€é«˜ 99%
         int freePercentage = (int) (freeBytes * 100L / chunkSize);
         if (freePercentage == 0) {
             return 99;
@@ -322,17 +321,17 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     private void updateParentsAlloc(int id) {
         while (id > 1) {
-            // »ñµÃ¸¸½ÚµãµÄ±àºÅ
+            // è·å¾—çˆ¶èŠ‚ç‚¹çš„ç¼–å·
             int parentId = id >>> 1;
-            // »ñµÃ×Ó½ÚµãµÄÖµ
+            // è·å¾—å­èŠ‚ç‚¹çš„å€¼
             byte val1 = value(id);
-            // »ñµÃÁíÍâÒ»¸ö×Ó½ÚµãµÄ
+            // è·å¾—å¦å¤–ä¸€ä¸ªå­èŠ‚ç‚¹çš„
             byte val2 = value(id ^ 1);
-            // »ñµÃ×Ó½Úµã½ÏĞ¡Öµ£¬²¢ÉèÖÃµ½¸¸½Úµã
+            // è·å¾—å­èŠ‚ç‚¹è¾ƒå°å€¼ï¼Œå¹¶è®¾ç½®åˆ°çˆ¶èŠ‚ç‚¹
             byte val = val1 < val2 ? val1 : val2;
             setValue(parentId, val);
 
-            // Ìøµ½¸¸½Úµã
+            // è·³åˆ°çˆ¶èŠ‚ç‚¹
             id = parentId;
         }
     }
@@ -345,28 +344,28 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @param id id
      */
     private void updateParentsFree(int id) {
-        // »ñµÃµ±Ç°½ÚµãµÄ×Ó½ÚµãµÄ²ã¼¶
+        // è·å¾—å½“å‰èŠ‚ç‚¹çš„å­èŠ‚ç‚¹çš„å±‚çº§
         int logChild = depth(id) + 1;
         while (id > 1) {
-            // »ñµÃ¸¸½ÚµãµÄ±àºÅ
+            // è·å¾—çˆ¶èŠ‚ç‚¹çš„ç¼–å·
             int parentId = id >>> 1;
-            // »ñµÃ×Ó½ÚµãµÄÖµ
+            // è·å¾—å­èŠ‚ç‚¹çš„å€¼
             byte val1 = value(id);
-            // »ñµÃÁíÍâÒ»¸ö×Ó½ÚµãµÄÖµ
+            // è·å¾—å¦å¤–ä¸€ä¸ªå­èŠ‚ç‚¹çš„å€¼
             byte val2 = value(id ^ 1);
-            // »ñµÃµ±Ç°½ÚµãµÄ²ã¼¶
+            // è·å¾—å½“å‰èŠ‚ç‚¹çš„å±‚çº§
             logChild -= 1; // in first iteration equals log, subsequently reduce 1 from logChild as we traverse up
 
-            // Á½¸ö×Ó½Úµã¶¼¿ÉÓÃ£¬ÔòÖ±½ÓÉèÖÃ¸¸½ÚµãµÄ²ã¼¶
+            // ä¸¤ä¸ªå­èŠ‚ç‚¹éƒ½å¯ç”¨ï¼Œåˆ™ç›´æ¥è®¾ç½®çˆ¶èŠ‚ç‚¹çš„å±‚çº§
             if (val1 == logChild && val2 == logChild) {
                 setValue(parentId, (byte) (logChild - 1));
-            // Á½¸ö×Ó½ÚµãÈÎÒ»²»¿ÉÓÃ£¬ÔòÈ¡×Ó½Úµã½ÏĞ¡Öµ£¬²¢ÉèÖÃµ½¸¸½Úµã
+            // ä¸¤ä¸ªå­èŠ‚ç‚¹ä»»ä¸€ä¸å¯ç”¨ï¼Œåˆ™å–å­èŠ‚ç‚¹è¾ƒå°å€¼ï¼Œå¹¶è®¾ç½®åˆ°çˆ¶èŠ‚ç‚¹
             } else {
                 byte val = val1 < val2 ? val1 : val2;
                 setValue(parentId, val);
             }
 
-            // Ìøµ½¸¸½Úµã
+            // è·³åˆ°çˆ¶èŠ‚ç‚¹
             id = parentId;
         }
     }
@@ -381,40 +380,40 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private int allocateNode(int d) {
         int id = 1;
         int initial = - (1 << d); // has last d bits = 0 and rest all = 1
-        // »ñµÃ¸ù½ÚµãµÄÖ¸Öµ¡£
-        // Èç¹û¸ù½ÚµãµÄÖµ£¬´óÓÚ d £¬ËµÃ÷£¬µÚ d ²ãÃ»ÓĞ·ûºÏµÄ½Úµã£¬Ò²¾ÍÊÇËµ [0, d-1] ²ãÒ²Ã»ÓĞ·ûºÏµÄ½Úµã¡£¼´£¬µ±Ç° Chunk Ã»ÓĞ·ûºÏµÄ½Úµã¡£
+        // è·å¾—æ ¹èŠ‚ç‚¹çš„æŒ‡å€¼ã€‚
+        // å¦‚æœæ ¹èŠ‚ç‚¹çš„å€¼ï¼Œå¤§äº d ï¼Œè¯´æ˜ï¼Œç¬¬ d å±‚æ²¡æœ‰ç¬¦åˆçš„èŠ‚ç‚¹ï¼Œä¹Ÿå°±æ˜¯è¯´ [0, d-1] å±‚ä¹Ÿæ²¡æœ‰ç¬¦åˆçš„èŠ‚ç‚¹ã€‚å³ï¼Œå½“å‰ Chunk æ²¡æœ‰ç¬¦åˆçš„èŠ‚ç‚¹ã€‚
         byte val = value(id);
         if (val > d) { // unusable
             return -1;
         }
-        // »ñµÃµÚ d ²ã£¬Æ¥ÅäµÄ½Úµã¡£
-        // id & initial À´±£Ö¤£¬¸ß¶ÈĞ¡ÓÚ d »á¼ÌĞøÑ­»·
+        // è·å¾—ç¬¬ d å±‚ï¼ŒåŒ¹é…çš„èŠ‚ç‚¹ã€‚
+        // id & initial æ¥ä¿è¯ï¼Œé«˜åº¦å°äº d ä¼šç»§ç»­å¾ªç¯
         while (val < d || (id & initial) == 0) { // id & initial == 1 << d for all ids at depth d, for < d it is 0
-            // ½øÈëÏÂÒ»²ã
-            // »ñµÃ×ó½ÚµãµÄ±àºÅ
+            // è¿›å…¥ä¸‹ä¸€å±‚
+            // è·å¾—å·¦èŠ‚ç‚¹çš„ç¼–å·
             id <<= 1;
-            // »ñµÃ×ó½ÚµãµÄÖµ
+            // è·å¾—å·¦èŠ‚ç‚¹çš„å€¼
             val = value(id);
-            // Èç¹ûÖµ´óÓÚ d £¬ËµÃ÷£¬ÒÔ×ó½Úµã×÷Îª¸ù½ÚµãĞÎ³ÉĞéÄâµÄĞéÄâÂú¶ş²æÊ÷£¬Ã»ÓĞ·ûºÏµÄ½Úµã¡£
+            // å¦‚æœå€¼å¤§äº d ï¼Œè¯´æ˜ï¼Œä»¥å·¦èŠ‚ç‚¹ä½œä¸ºæ ¹èŠ‚ç‚¹å½¢æˆè™šæ‹Ÿçš„è™šæ‹Ÿæ»¡äºŒå‰æ ‘ï¼Œæ²¡æœ‰ç¬¦åˆçš„èŠ‚ç‚¹ã€‚
             if (val > d) {
-                // »ñµÃÓÒ½ÚµãµÄ±àºÅ
+                // è·å¾—å³èŠ‚ç‚¹çš„ç¼–å·
                 id ^= 1;
-                // »ñµÃÓÒ½ÚµãµÄÖµ
+                // è·å¾—å³èŠ‚ç‚¹çš„å€¼
                 val = value(id);
             }
         }
 
-        // Ğ£Ñé»ñµÃµÄ½ÚµãÖµºÏÀí
+        // æ ¡éªŒè·å¾—çš„èŠ‚ç‚¹å€¼åˆç†
         byte value = value(id);
         assert value == d && (id & initial) == 1 << d : String.format("val = %d, id & initial = %d, d = %d",
                 value, id & initial, d);
 
-        // ¸üĞÂ»ñµÃµÄ½Úµã²»¿ÉÓÃ
+        // æ›´æ–°è·å¾—çš„èŠ‚ç‚¹ä¸å¯ç”¨
         setValue(id, unusable); // mark as unusable
-        // ¸üĞÂ»ñµÃµÄ½ÚµãµÄ×æÏÈ¶¼²»¿ÉÓÃ
+        // æ›´æ–°è·å¾—çš„èŠ‚ç‚¹çš„ç¥–å…ˆéƒ½ä¸å¯ç”¨
         updateParentsAlloc(id);
 
-        // ·µ»Ø½Úµã±àºÅ
+        // è¿”å›èŠ‚ç‚¹ç¼–å·
         return id;
     }
 
@@ -425,15 +424,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private long allocateRun(int normCapacity) {
-        // »ñµÃ²ã¼¶
+        // è·å¾—å±‚çº§
         int d = maxOrder - (log2(normCapacity) - pageShifts);
-        // »ñµÃ½Úµã
+        // è·å¾—èŠ‚ç‚¹
         int id = allocateNode(d);
-        // Î´»ñµÃµ½½Úµã£¬Ö±½Ó·µ»Ø
+        // æœªè·å¾—åˆ°èŠ‚ç‚¹ï¼Œç›´æ¥è¿”å›
         if (id < 0) {
             return id;
         }
-        // ¼õÉÙÊ£Óà¿ÉÓÃ×Ö½ÚÊı
+        // å‡å°‘å‰©ä½™å¯ç”¨å­—èŠ‚æ•°
         freeBytes -= runLength(id);
         return id;
     }
@@ -446,14 +445,14 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private long allocateSubpage(int normCapacity) {
-        // »ñµÃ¶ÔÓ¦ÄÚ´æ¹æ¸ñµÄ Subpage Ë«ÏòÁ´±íµÄ head ½Úµã
+        // è·å¾—å¯¹åº”å†…å­˜è§„æ ¼çš„ Subpage åŒå‘é“¾è¡¨çš„ head èŠ‚ç‚¹
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
         // This is need as we may add it back and so alter the linked-list structure.
         PoolSubpage<T> head = arena.findSubpagePoolHead(normCapacity);
         int d = maxOrder; // subpages are only be allocated from pages i.e., leaves
         synchronized (head) {
             int id = allocateNode(d);
-            // »ñÈ¡Ê§°Ü£¬Ö±½Ó·µ»Ø
+            // è·å–å¤±è´¥ï¼Œç›´æ¥è¿”å›
             if (id < 0) {
                 return id;
             }
@@ -461,21 +460,21 @@ final class PoolChunk<T> implements PoolChunkMetric {
             final PoolSubpage<T>[] subpages = this.subpages;
             final int pageSize = this.pageSize;
 
-            // ¼õÉÙÊ£Óà¿ÉÓÃ×Ö½ÚÊı
+            // å‡å°‘å‰©ä½™å¯ç”¨å­—èŠ‚æ•°
             freeBytes -= pageSize;
 
-            // »ñµÃ½Úµã¶ÔÓ¦µÄ subpages Êı×éµÄ±àºÅ
+            // è·å¾—èŠ‚ç‚¹å¯¹åº”çš„ subpages æ•°ç»„çš„ç¼–å·
             int subpageIdx = subpageIdx(id);
-            // »ñµÃ½Úµã¶ÔÓ¦µÄ subpages Êı×éµÄ PoolSubpage ¶ÔÏó
+            // è·å¾—èŠ‚ç‚¹å¯¹åº”çš„ subpages æ•°ç»„çš„ PoolSubpage å¯¹è±¡
             PoolSubpage<T> subpage = subpages[subpageIdx];
-            // ³õÊ¼»¯ PoolSubpage ¶ÔÏó
-            if (subpage == null) { // ²»´æÔÚ£¬Ôò½øĞĞ´´½¨ PoolSubpage ¶ÔÏó
+            // åˆå§‹åŒ– PoolSubpage å¯¹è±¡
+            if (subpage == null) { // ä¸å­˜åœ¨ï¼Œåˆ™è¿›è¡Œåˆ›å»º PoolSubpage å¯¹è±¡
                 subpage = new PoolSubpage<T>(head, this, id, runOffset(id), pageSize, normCapacity);
                 subpages[subpageIdx] = subpage;
-            } else { // ´æÔÚ£¬ÔòÖØĞÂ³õÊ¼»¯ PoolSubpage ¶ÔÏó
+            } else { // å­˜åœ¨ï¼Œåˆ™é‡æ–°åˆå§‹åŒ– PoolSubpage å¯¹è±¡
                 subpage.init(head, normCapacity);
             }
-            // ·ÖÅä PoolSubpage ÄÚ´æ¿é
+            // åˆ†é… PoolSubpage å†…å­˜å—
             return subpage.allocate();
         }
     }
@@ -489,39 +488,39 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @param handle handle to free
      */
     void free(long handle, ByteBuffer nioBuffer) {
-        // »ñµÃ memoryMap Êı×éµÄ±àºÅ( ÏÂ±ê )
+        // è·å¾— memoryMap æ•°ç»„çš„ç¼–å·( ä¸‹æ ‡ )
         int memoryMapIdx = memoryMapIdx(handle);
-        // »ñµÃ bitmap Êı×éµÄ±àºÅ( ÏÂ±ê )¡£×¢Òâ£¬´ËÊ±»ñµÃµÄ»¹²»ÊÇÕæÕıµÄ bitmapIdx Öµ£¬ĞèÒª¾­¹ı `bitmapIdx & 0x3FFFFFFF` ÔËËã¡£
+        // è·å¾— bitmap æ•°ç»„çš„ç¼–å·( ä¸‹æ ‡ )ã€‚æ³¨æ„ï¼Œæ­¤æ—¶è·å¾—çš„è¿˜ä¸æ˜¯çœŸæ­£çš„ bitmapIdx å€¼ï¼Œéœ€è¦ç»è¿‡ `bitmapIdx & 0x3FFFFFFF` è¿ç®—ã€‚
         int bitmapIdx = bitmapIdx(handle);
 
-        // ÊÍ·Å Subpage begin ~
+        // é‡Šæ”¾ Subpage begin ~
 
-        if (bitmapIdx != 0) { // free a subpage bitmapIdx ·Ç¿Õ£¬ËµÃ÷ÊÍ·ÅµÄÊÇ Subpage
-            // »ñµÃ PoolSubpage ¶ÔÏó
+        if (bitmapIdx != 0) { // free a subpage bitmapIdx éç©ºï¼Œè¯´æ˜é‡Šæ”¾çš„æ˜¯ Subpage
+            // è·å¾— PoolSubpage å¯¹è±¡
             PoolSubpage<T> subpage = subpages[subpageIdx(memoryMapIdx)];
             assert subpage != null && subpage.doNotDestroy;
 
-            // »ñµÃ¶ÔÓ¦ÄÚ´æ¹æ¸ñµÄ Subpage Ë«ÏòÁ´±íµÄ head ½Úµã
+            // è·å¾—å¯¹åº”å†…å­˜è§„æ ¼çš„ Subpage åŒå‘é“¾è¡¨çš„ head èŠ‚ç‚¹
             // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
             // This is need as we may add it back and so alter the linked-list structure.
             PoolSubpage<T> head = arena.findSubpagePoolHead(subpage.elemSize);
-            // ¼ÓËø£¬·ÖÅä¹ı³Ì»áĞŞ¸ÄË«ÏòÁ´±íµÄ½á¹¹£¬»á´æÔÚ¶àÏß³ÌµÄÇé¿ö¡£
+            // åŠ é”ï¼Œåˆ†é…è¿‡ç¨‹ä¼šä¿®æ”¹åŒå‘é“¾è¡¨çš„ç»“æ„ï¼Œä¼šå­˜åœ¨å¤šçº¿ç¨‹çš„æƒ…å†µã€‚
             synchronized (head) {
-                // ÊÍ·Å Subpage ¡£
+                // é‡Šæ”¾ Subpage ã€‚
                 if (subpage.free(head, bitmapIdx & 0x3FFFFFFF)) {
                     return;
                 }
-                // ¡ü¡ü¡ü ·µ»Ø false £¬ËµÃ÷ Page ÖĞÎŞÇĞ·ÖÕıÔÚÊ¹ÓÃµÄ Subpage ÄÚ´æ¿é£¬ËùÒÔ¿ÉÒÔ¼ÌĞøÏòÏÂÖ´ĞĞ£¬ÊÍ·Å Page
+                // â†‘â†‘â†‘ è¿”å› false ï¼Œè¯´æ˜ Page ä¸­æ— åˆ‡åˆ†æ­£åœ¨ä½¿ç”¨çš„ Subpage å†…å­˜å—ï¼Œæ‰€ä»¥å¯ä»¥ç»§ç»­å‘ä¸‹æ‰§è¡Œï¼Œé‡Šæ”¾ Page
             }
         }
 
-        // ÊÍ·Å Page begin ~
+        // é‡Šæ”¾ Page begin ~
 
-        // Ôö¼ÓÊ£Óà¿ÉÓÃ×Ö½ÚÊı
+        // å¢åŠ å‰©ä½™å¯ç”¨å­—èŠ‚æ•°
         freeBytes += runLength(memoryMapIdx);
-        // ÉèÖÃ Page ¶ÔÓ¦µÄ½Úµã¿ÉÓÃ
+        // è®¾ç½® Page å¯¹åº”çš„èŠ‚ç‚¹å¯ç”¨
         setValue(memoryMapIdx, depth(memoryMapIdx));
-        // ¸üĞÂ Page ¶ÔÓ¦µÄ½ÚµãµÄ×æÏÈ¿ÉÓÃ
+        // æ›´æ–° Page å¯¹åº”çš„èŠ‚ç‚¹çš„ç¥–å…ˆå¯ç”¨
         updateParentsFree(memoryMapIdx);
 
         if (nioBuffer != null && cachedNioBuffers != null &&
@@ -533,16 +532,16 @@ final class PoolChunk<T> implements PoolChunkMetric {
     void initBuf(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity,
                  PoolThreadCache threadCache) {
         int memoryMapIdx = memoryMapIdx(handle);
-        // »ñµÃ bitmap Êı×éµÄ±àºÅ( ÏÂ±ê )¡£×¢Òâ£¬´ËÊ±»ñµÃµÄ»¹²»ÊÇÕæÕıµÄ bitmapIdx Öµ£¬ĞèÒª¾­¹ı `bitmapIdx & 0x3FFFFFFF` ÔËËã¡£
+        // è·å¾— bitmap æ•°ç»„çš„ç¼–å·( ä¸‹æ ‡ )ã€‚æ³¨æ„ï¼Œæ­¤æ—¶è·å¾—çš„è¿˜ä¸æ˜¯çœŸæ­£çš„ bitmapIdx å€¼ï¼Œéœ€è¦ç»è¿‡ `bitmapIdx & 0x3FFFFFFF` è¿ç®—ã€‚
         int bitmapIdx = bitmapIdx(handle);
-        // ÄÚ´æ¿éÎª Page
+        // å†…å­˜å—ä¸º Page
         if (bitmapIdx == 0) {
             byte val = value(memoryMapIdx);
             assert val == unusable : String.valueOf(val);
             buf.init(this, nioBuffer, handle, runOffset(memoryMapIdx) + offset,
                     reqCapacity, runLength(memoryMapIdx), threadCache);
         } else {
-            // ³õÊ¼»¯ Subpage ÄÚ´æ¿éµ½ PooledByteBuf ÖĞ
+            // åˆå§‹åŒ– Subpage å†…å­˜å—åˆ° PooledByteBuf ä¸­
             initBufWithSubpage(buf, nioBuffer, handle, bitmapIdx, reqCapacity, threadCache);
         }
     }
@@ -556,14 +555,14 @@ final class PoolChunk<T> implements PoolChunkMetric {
                                     long handle, int bitmapIdx, int reqCapacity, PoolThreadCache threadCache) {
         assert bitmapIdx != 0;
 
-        // »ñµÃ memoryMap Êı×éµÄ±àºÅ( ÏÂ±ê )
+        // è·å¾— memoryMap æ•°ç»„çš„ç¼–å·( ä¸‹æ ‡ )
         int memoryMapIdx = memoryMapIdx(handle);
-        // »ñµÃ Subpage ¶ÔÏó
+        // è·å¾— Subpage å¯¹è±¡
         PoolSubpage<T> subpage = subpages[subpageIdx(memoryMapIdx)];
         assert subpage.doNotDestroy;
         assert reqCapacity <= subpage.elemSize;
 
-        // ³õÊ¼»¯ Subpage ÄÚ´æ¿éµ½ PooledByteBuf ÖĞ
+        // åˆå§‹åŒ– Subpage å†…å­˜å—åˆ° PooledByteBuf ä¸­
         buf.init(
             this, nioBuffer, handle,
             runOffset(memoryMapIdx) + (bitmapIdx & 0x3FFFFFFF) * subpage.elemSize + offset,

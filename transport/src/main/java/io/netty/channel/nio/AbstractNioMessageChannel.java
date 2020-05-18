@@ -100,7 +100,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 // 循环 readBuf 数组，触发 Channel read 事件到 pipeline 中。
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
-                    // TODO 芋艿
+                    // TODO
                     readPending = false;
                     // 在内部，会通过 ServerBootstrapAcceptor ，将客户端的 Netty NioSocketChannel 注册到 EventLoop 上
                     pipeline.fireChannelRead(readBuf.get(i));
@@ -114,7 +114,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
                 // 发生异常
                 if (exception != null) {
-                    // 判断是否要关闭 TODO 芋艿
+                    // 判断是否要关闭 TODO
                     closed = closeOnReadError(exception);
 
                     // 触发 exceptionCaught 事件到 pipeline 中。
