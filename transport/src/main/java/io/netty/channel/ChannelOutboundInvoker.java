@@ -21,8 +21,20 @@ import io.netty.util.concurrent.FutureListener;
 import java.net.ConnectException;
 import java.net.SocketAddress;
 
+/**
+ * 发起 Channel 操作的接口方法。
+ * 创建 Promise 对象的接口方法。
+ *
+ * Outbound 事件流:
+ * Context.OUT_EVT ->
+ * Connect.findContextOutbound ->
+ * nextContext.invokeOUT_EVT ->
+ * nextHandler.OUT_EVT ->
+ * nextContext.OUT_EVT
+ *
+ */
 public interface ChannelOutboundInvoker {
-
+    // ========== Channel 操作相关 ==========
     /**
      * Request to bind to the given {@link SocketAddress} and notify the {@link ChannelFuture} once the operation
      * completes, either because the operation was successful or because of an error.
@@ -228,6 +240,8 @@ public interface ChannelOutboundInvoker {
      * Shortcut for call {@link #write(Object)} and {@link #flush()}.
      */
     ChannelFuture writeAndFlush(Object msg);
+
+    // ========== Promise 相关 ==========
 
     /**
      * Return a new {@link ChannelPromise}.

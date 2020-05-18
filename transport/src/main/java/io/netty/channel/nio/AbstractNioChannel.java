@@ -341,7 +341,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
 
             // If a user cancelled the connection attempt, close the channel, which is followed by channelInactive().
-            // TODO 芋艿
+            // TODO
             if (!promiseSet) {
                 close(voidPromise());
             }

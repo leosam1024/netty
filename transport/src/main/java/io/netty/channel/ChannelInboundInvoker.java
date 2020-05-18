@@ -15,6 +15,12 @@
  */
 package io.netty.channel;
 
+/**
+ * nbound 事件是【通知】事件, 当某件事情已经就绪后, 通知上层.
+ * Inbound 事件发起者是 Unsafe
+ * Inbound 事件的处理者是 TailContext, 如果用户没有实现自定义的处理方法, 那么Inbound 事件默认的处理者是 TailContext, 并且其处理方法是空实现.
+ * Inbound 事件在 Pipeline 中传输方向是 head( 头 ) -> tail( 尾 )
+ */
 public interface ChannelInboundInvoker {
 
     /**

@@ -136,7 +136,7 @@ class SimpleLeakAwareByteBuf extends WrappedByteBuf {
             return newSharedLeakAwareByteBuf(super.order(endianness));
         }
     }
-    // TODO 芋艿，看不懂 1017
+    // TODO 看不懂 1017
     private ByteBuf unwrappedDerived(ByteBuf derived) {
         // We only need to unwrap SwappedByteBuf implementations as these will be the only ones that may end up in
         // the AbstractLeakAwareByteBuf implementations beside slices / duplicates and "real" buffers.

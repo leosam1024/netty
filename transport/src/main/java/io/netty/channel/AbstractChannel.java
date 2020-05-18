@@ -744,12 +744,16 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         private void close(final ChannelPromise promise, final Throwable cause,
                            final ClosedChannelException closeCause, final boolean notify) {
+            // 设置 Promise 不可取消
             if (!promise.setUncancellable()) {
                 return;
             }
 
+            // 若关闭已经标记初始化
             if (closeInitiated) {
+                // 关闭已经完成，直接通知 Promise 对象
                 if (closeFuture.isDone()) {
+                    // 关闭未完成，通过监听器通知 Promise 对象
                     // Closed already.
                     safeSetSuccess(promise);
                 } else if (!(promise instanceof VoidChannelPromise)) { // Only needed if no VoidChannelPromise.
@@ -1041,7 +1045,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
-                // TODO 芋艿 细节
+                // TODO 细节
                 if (t instanceof IOException && config().isAutoClose()) {
                     /**
                      * Just call {@link #close(ChannelPromise, Throwable, boolean)} here which will take care of

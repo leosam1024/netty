@@ -205,6 +205,7 @@ public final class DefaultChannelId implements ChannelId {
 
     @Override
     public String asShortText() {
+        // 仅使用最后 4 字节的随机数字，并转换成 16 进制的数字字符串。也因此，短，但是全局非唯一。
         String shortValue = this.shortValue;
         if (shortValue == null) {
             this.shortValue = shortValue = ByteBufUtil.hexDump(data, data.length - RANDOM_LEN, RANDOM_LEN);
@@ -214,6 +215,7 @@ public final class DefaultChannelId implements ChannelId {
 
     @Override
     public String asLongText() {
+        // 最终也是 16 进制的数字。也因此，长，但是全局唯一。
         String longValue = this.longValue;
         if (longValue == null) {
             this.longValue = longValue = newLongValue();

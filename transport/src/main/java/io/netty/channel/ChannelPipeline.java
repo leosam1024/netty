@@ -29,6 +29,13 @@ import java.util.NoSuchElementException;
 
 
 /**
+ * 归类如下：
+ *
+ * ChannelHandler 的增删改查的相关方法。
+ * Channel 的相关方法，目前只有一个。
+ * 继承自 ChannelInboundInvoker 的相关方法。
+ * 继承自 ChannelOutboundInvoker 的相关方法。
+ *
  * A list of {@link ChannelHandler}s which handles or intercepts inbound events and outbound operations of a
  * {@link Channel}.  {@link ChannelPipeline} implements an advanced form of the
  * <a href="http://www.oracle.com/technetwork/java/interceptingfilter-142169.html">Intercepting Filter</a> pattern
@@ -216,6 +223,7 @@ import java.util.NoSuchElementException;
 public interface ChannelPipeline
         extends ChannelInboundInvoker, ChannelOutboundInvoker, Iterable<Entry<String, ChannelHandler>> {
 
+    // ========== 添加 ChannelHandler 相关 ==========
     /**
      * Inserts a {@link ChannelHandler} at the first position of this pipeline.
      *
@@ -380,6 +388,7 @@ public interface ChannelPipeline
      */
     ChannelPipeline addLast(EventExecutorGroup group, ChannelHandler... handlers);
 
+    // ========== 移除 ChannelHandler 相关 ==========
     /**
      * Removes the specified {@link ChannelHandler} from this pipeline.
      *
@@ -441,6 +450,7 @@ public interface ChannelPipeline
      */
     ChannelHandler removeLast();
 
+    // ========== 替换 ChannelHandler 相关 ==========
     /**
      * Replaces the specified {@link ChannelHandler} with a new handler in this pipeline.
      *
@@ -481,6 +491,7 @@ public interface ChannelPipeline
      */
     ChannelHandler replace(String oldName, String newName, ChannelHandler newHandler);
 
+    // ========== 查询 ChannelHandler 相关 ==========
     /**
      * Replaces the {@link ChannelHandler} of the specified type with a new handler in this pipeline.
      *
@@ -576,6 +587,7 @@ public interface ChannelPipeline
      */
     ChannelHandlerContext context(Class<? extends ChannelHandler> handlerType);
 
+    // ========== Channel 相关 ==========
     /**
      * Returns the {@link Channel} that this pipeline is attached to.
      *
@@ -594,6 +606,7 @@ public interface ChannelPipeline
      */
     Map<String, ChannelHandler> toMap();
 
+    // ========== ChannelInboundInvoker 相关 ==========
     @Override
     ChannelPipeline fireChannelRegistered();
 
@@ -621,6 +634,7 @@ public interface ChannelPipeline
     @Override
     ChannelPipeline fireChannelWritabilityChanged();
 
+    // ========== ChannelOutboundInvoker 相关 ==========
     @Override
     ChannelPipeline flush();
 }

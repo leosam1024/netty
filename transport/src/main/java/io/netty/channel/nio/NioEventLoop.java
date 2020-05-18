@@ -849,7 +849,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
-    // TODO 芋艿 TODO 1006 EventLoop 优雅关闭
+    // TODO 1006 EventLoop 优雅关闭
     private void closeAll() {
         selectAgain();
         Set<SelectionKey> keys = selector.keys();

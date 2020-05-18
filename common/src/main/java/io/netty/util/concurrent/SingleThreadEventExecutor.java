@@ -280,7 +280,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     protected static Runnable pollTaskFrom(Queue<Runnable> taskQueue) {
         for (;;) {
-            // 获得并移除队首元素。如果获得不到，返回 null
+            // 获得并移除队首元素。
             Runnable task = taskQueue.poll();
             if (task != WAKEUP_TASK) {
                 return task;
@@ -444,6 +444,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
+     * 执行所有任务直到完成所有。
      * Poll all tasks from the task queue and run them via {@link Runnable#run()} method.
      *
      * @return {@code true} if and only if at least one task was run
@@ -500,6 +501,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
+     * 执行任务队列中的所有任务
      * Runs all tasks from the passed {@code taskQueue}.
      *
      * @param taskQueue To poll and execute all tasks.
@@ -560,6 +562,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (task == null) {
             // 执行所有任务完成的后续方法
             afterRunningAllTasks();
+            // 任务队列可能为空，那么就会返回 false ，表示没有执行过任务。
             return false;
         }
 
@@ -729,6 +732,19 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return ran;
     }
 
+    /**
+     *
+     * 该方法只是将线程状态修改为ST_SHUTTING_DOWN并不执行具体的关闭操作
+     * （类似的shutdown方法将线程状态修改为ST_SHUTDOWN）
+     * for()循环是为了保证修改state的线程（原生线程或者外部线程）有且只有一个。
+     *
+     * @param quietPeriod the quiet period as described in the documentation
+     * @param timeout     the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
+     *                    regardless if a task was submitted during the quiet period
+     * @param unit        the unit of {@code quietPeriod} and {@code timeout}
+     *
+     * @return
+     */
     @Override
     public Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
         ObjectUtil.checkPositiveOrZero(quietPeriod, "quietPeriod");
@@ -739,15 +755,16 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         ObjectUtil.checkNotNull(unit, "unit");
 
         if (isShuttingDown()) {
-            return terminationFuture();
+            return terminationFuture(); // 正在关闭阻止其他线程
         }
 
         boolean inEventLoop = inEventLoop();
         boolean wakeup;
         int oldState;
+        // for()循环是为了保证修改state的线程（原生线程或者外部线程）有且只有一个。
         for (;;) {
             if (isShuttingDown()) {
-                return terminationFuture();
+                return terminationFuture(); // 正在关闭阻止其他线程
             }
             int newState;
             wakeup = true;
@@ -760,15 +777,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                     case ST_STARTED:
                         newState = ST_SHUTTING_DOWN;
                         break;
-                    default:
+                    default: // 一个线程已修改好线程状态
                         newState = oldState;
-                        wakeup = false;
+                        wakeup = false; // 已经有线程唤醒，所以不用再唤醒
                 }
             }
             if (STATE_UPDATER.compareAndSet(this, oldState, newState)) {
-                break;
+                break; // 保证只有一个线程将oldState修改为newState
             }
+            // 隐含STATE_UPDATER已被修改，则在下一次循环返回
         }
+
+        // 在default情况下会更新这两个值
         gracefulShutdownQuietPeriod = unit.toNanos(quietPeriod);
         gracefulShutdownTimeout = unit.toNanos(timeout);
 

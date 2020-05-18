@@ -40,6 +40,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
+ * 实现 ChannelPipeline 接口，默认 ChannelPipeline 实现类。
+ * 😈 实际上，也只有这个实现类。
+ *
  * The default {@link ChannelPipeline} implementation.  It is usually created
  * by a {@link Channel} implementation when the {@link Channel} is created.
  */
@@ -152,12 +155,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // voidPromise 的创建
         voidPromise =  new VoidChannelPromise(channel, true);
 
-        // 创建 Tail 及诶点
+        // 创建 Tail 尾部节点
         tail = new TailContext(this);
-        // 创建 Head 节点
+        // 创建 Head 头部节点
         head = new HeadContext(this);
 
         // 相互指向
+        // 成默认的 ChannelHandler 链。而我们可以在它们之间，加入自定义的 ChannelHandler 节点
         head.next = tail;
         tail.prev = head;
     }
@@ -177,12 +181,26 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return touch ? ReferenceCountUtil.touch(msg, next) : msg;
     }
 
+    /**
+     * 创建 DefaultChannelHandlerContext 节点。而这个节点，内嵌传入的 ChannelHandler 参数。
+     * @param group
+     * @param name
+     * @param handler
+     * @return
+     */
     private AbstractChannelHandlerContext newContext(EventExecutorGroup group, String name, ChannelHandler handler) {
         return new DefaultChannelHandlerContext(this, childExecutor(group), name, handler);
     }
 
+    /**
+     * 创建子执行器
+     * @param group
+     * @return
+     */
     private EventExecutor childExecutor(EventExecutorGroup group) {
         // 不创建子执行器
+        // 使用 Channel 所注册的 EventLoop 作为执行器。
+        // 对于我们日常使用，基本完全都是这种情况。
         if (group == null) {
             return null;
         }
@@ -222,11 +240,16 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     public final ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+            // 校验是否重复的 ChannelHandler
             checkMultiplicity(handler);
+            // 获得 ChannelHandler 的名字
             name = filterName(name, handler);
 
+            // 创建 DefaultChannelHandlerContext 节点
+            // 而这个节点，内嵌传入的 ChannelHandler 参数。
             newCtx = newContext(group, name, handler);
 
+            // 添加到最后一个节点。注意，实际上，是添加到 tail 节点之前。
             addFirst0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -275,6 +298,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             // 添加节点
             addLast0(newCtx);
 
+            // ========== 后续分成 3 种情况 ==========
+
+            // 1>
+            // Channel 并未注册。这种情况，发生于 ServerBootstrap 启动的过程中。
+            // 在 ServerBootstrap#init(Channel channel) 方法中，
+            // 会添加 ChannelInitializer 对象到 pipeline 中，恰好此时 Channel 并未注册。
+
             // pipeline 暂未注册，添加回调。再注册完成后，执行回调。详细解析，见 {@link #invokeHandlerAddedIfNeeded} 方法。
             // If the registered is false it means that the channel was not registered on an eventloop yet.
             // In this case we add the context to the pipeline and add a task that will call
@@ -287,7 +317,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
 
-            // 不再 EventLoop 的线程中，提交 EventLoop 中，执行回调用户方法
+            // <2>
+            // 不在 EventLoop 的线程中，提交 EventLoop 中，执行回调用户方法
             EventExecutor executor = newCtx.executor();
             if (!executor.inEventLoop()) {
                 callHandlerAddedInEventLoop(newCtx, executor);
@@ -295,6 +326,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             }
         }
 
+        //  <3>在 EventLoop 的线程中的版本。也因为此，已经确认在 EventLoop 的线程中，所以不需要在 synchronized 中。
         // 回调 ChannelHandler added 事件
         callHandlerAdded0(newCtx);
         return this;
@@ -356,10 +388,22 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         ctx.prev = newCtx;
     }
 
+    /**
+     * 获得 ChannelHandler 的名字
+     * @param name
+     * @param handler
+     * @return
+     */
     private String filterName(String name, ChannelHandler handler) {
+        // 未传入默认的名字 name ，
+        // 则调用 #generateName(ChannelHandler) 方法，
+        // 根据 ChannelHandler 生成一个唯一的名字。详细解析
         if (name == null) {
             return generateName(handler);
         }
+        // 若已传入默认的名字 name ，
+        // 则调用 #checkDuplicateName(String name) 方法，
+        // 校验名字唯一。
         checkDuplicateName(name);
         return name;
     }
@@ -440,6 +484,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 添加任意数量的 ChannelHandler 对象。
+     * @param handler
+     * @return
+     */
     public final ChannelPipeline addLast(ChannelHandler handler) {
         return addLast(null, handler);
     }
@@ -463,6 +512,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 根据 ChannelHandler 生成一个唯一名字
+     * @param handler
+     * @return
+     */
     private String generateName(ChannelHandler handler) {
         // 从缓存中查询，是否已经生成默认名字
         Map<Class<?>, String> cache = nameCaches.get();
@@ -683,6 +737,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         oldCtx.next = newCtx;
     }
 
+    /**
+     * 校验是否重复的 ChannelHandler
+     * 在 pipeline 中，一个创建的 ChannelHandler 对象，如果不使用 Netty @Sharable 注解，则只能添加到一个 Channel 的 pipeline 中。
+     * 所以，如果我们想要重用一个 ChannelHandler 对象( 例如在 Spring 环境中 )，则必须给这个 ChannelHandler 添加 @Sharable 注解。
+     *
+     * 例如，在 Dubbo 的 com.alibaba.dubbo.remoting.transport.netty.NettyHandler 处理器，它就使用了 @Sharable 注解。
+     * @param handler
+     */
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
@@ -697,6 +759,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 执行回调 ChannelHandler 添加完成( added )事件。
+     * @param ctx
+     */
     private void callHandlerAdded0(final AbstractChannelHandlerContext ctx) {
         try {
             // 回调 ChannelHandler 添加完成( added )事件
@@ -704,7 +770,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         } catch (Throwable t) {
             boolean removed = false;
             try {
-            // 回调 ChannelHandler 移除完成( removed )事件
+                // 回调 ChannelHandler 移除完成( removed )事件
                 atomicRemoveFromHandlerList(ctx);
                 ctx.callHandlerRemoved();
                 removed = true; // 标记移除成功
@@ -1152,7 +1218,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return voidPromise;
     }
 
+    // 校验名字唯一。
     private void checkDuplicateName(String name) {
+        // 获得指定名字的节点。若存在节点，意味着不唯一，抛出 IllegalArgumentException 异常
         if (context0(name) != null) {
             throw new IllegalArgumentException("Duplicate handler name: " + name);
         }
@@ -1349,11 +1417,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    // 实现 ChannelInboundHandler 接口，继承 AbstractChannelHandlerContext 抽象类，pipe 尾节点 Context 实现类。
     // A special catch-all handler that handles both bytes and messages.
     final class TailContext extends AbstractChannelHandlerContext implements ChannelInboundHandler {
 
         TailContext(DefaultChannelPipeline pipeline) {
+            // 调用父 AbstractChannelHandlerContext 的构造方法，设置 inbound = true、outbound = false ，和 HeadContext 相反。
             super(pipeline, null, TAIL_NAME, TailContext.class);
+            // 设置 ChannelHandler 添加完成。此时，handlerStatus 会变成 ADD_COMPLETE 状态。
             setAddComplete();
         }
 
@@ -1546,6 +1617,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     /**
      * 等待添加 ChannelHandler 回调接口
+     * 通过 ctx 和 next 字段，形成回调链。
+     * #execute() 抽象方法，通过实现它，执行回调逻辑。
      */
     private abstract static class PendingHandlerCallback implements Runnable {
 
@@ -1569,6 +1642,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     }
 
+    /**
+     * 实现 PendingHandlerCallback 抽象类，用于回调添加 ChannelHandler 节点。
+     */
     private final class PendingHandlerAddedTask extends PendingHandlerCallback {
 
         PendingHandlerAddedTask(AbstractChannelHandlerContext ctx) {

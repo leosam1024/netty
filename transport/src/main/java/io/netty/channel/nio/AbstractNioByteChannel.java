@@ -125,7 +125,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 RecvByteBufAllocator.Handle allocHandle) {
             if (byteBuf != null) {
                 if (byteBuf.isReadable()) {
-                    // TODO 芋艿 细节
+                    // TODO 细节
                     readPending = false;
                     // 触发 Channel read 事件到 pipeline 中。
                     pipeline.fireChannelRead(byteBuf);
@@ -140,7 +140,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             pipeline.fireChannelReadComplete();
             // 触发 exceptionCaught 事件到 pipeline 中。
             pipeline.fireExceptionCaught(cause);
-            // // TODO 芋艿 细节
+            // TODO 细节
             if (close || cause instanceof IOException) {
                 closeOnRead(pipeline);
             }
@@ -192,7 +192,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     // 读取消息数量 + localRead
                     allocHandle.incMessagesRead(1);
-                    // TODO 芋艿 readPending
+                    // TODO readPending
                     readPending = false;
                     // 触发 Channel read 事件到 pipeline 中。 TODO
                     pipeline.fireChannelRead(byteBuf);
@@ -205,14 +205,14 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 // 触发 Channel readComplete 事件到 pipeline 中。
                 pipeline.fireChannelReadComplete();
 
-                // TODO 芋艿 细节
+                // TODO 细节
                 if (close) {
                     closeOnRead(pipeline);
                 }
             } catch (Throwable t) {
                 handleReadException(pipeline, byteBuf, t, close, allocHandle);
             } finally {
-                // TODO 芋艿 readPending
+                // TODO readPending
                 // Check if there is a readPending which was not processed yet.
                 // This could be for two reasons:
                 // * The user called Channel.read() or ChannelHandlerContext.read() in channelRead(...) method

@@ -58,27 +58,33 @@ import static io.netty.channel.ChannelHandlerMask.MASK_USER_EVENT_TRIGGERED;
 import static io.netty.channel.ChannelHandlerMask.MASK_WRITE;
 import static io.netty.channel.ChannelHandlerMask.mask;
 
+/**
+ * 实现 ChannelHandlerContext、ResourceLeakHint 接口，继承 DefaultAttributeMap 类，ChannelHandlerContext 抽象基类。
+ */
 abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
     volatile AbstractChannelHandlerContext next;
     volatile AbstractChannelHandlerContext prev;
 
+    /**
+     * {@link #handlerState} 的原子更新器
+     */
     private static final AtomicIntegerFieldUpdater<AbstractChannelHandlerContext> HANDLER_STATE_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(AbstractChannelHandlerContext.class, "handlerState");
 
     /**
      * {@link ChannelHandler#handlerAdded(ChannelHandlerContext)} is about to be called.
      */
-    private static final int ADD_PENDING = 1;
+    private static final int ADD_PENDING = 1;// 添加准备中
     /**
      * {@link ChannelHandler#handlerAdded(ChannelHandlerContext)} was called.
      */
-    private static final int ADD_COMPLETE = 2;
+    private static final int ADD_COMPLETE = 2;// 已添加
     /**
      * {@link ChannelHandler#handlerRemoved(ChannelHandlerContext)} was called.
      */
-    private static final int REMOVE_COMPLETE = 3;
+    private static final int REMOVE_COMPLETE = 3;// 已移除
     /**
      * Neither {@link ChannelHandler#handlerAdded(ChannelHandlerContext)}
      * nor {@link ChannelHandler#handlerRemoved(ChannelHandlerContext)} was called.
@@ -103,6 +109,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     // There is no need to make this volatile as at worse it will just create a few more instances then needed.
     private Tasks invokeTasks;
 
+    // ========== 非静态属性 ==========
+
+    /**
+     * 处理器状态
+     * 共有 4 种状态。状态变迁如下图：
+     */
     private volatile int handlerState = INIT;
 
     AbstractChannelHandlerContext(DefaultChannelPipeline pipeline, EventExecutor executor,
@@ -804,6 +816,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    // 是从 AbstractChannelHandlerContext 抽象类继承
     private void write(Object msg, boolean flush, ChannelPromise promise) {
         // 消息( 数据 )为空，抛出异常
         ObjectUtil.checkNotNull(msg, "msg");
@@ -929,15 +942,23 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         AbstractChannelHandlerContext ctx = this;
         EventExecutor currentExecutor = executor();
         do {
+            // 循环，向后获得一个 Inbound 节点。
             ctx = ctx.next;
         } while (skipContext(ctx, currentExecutor, mask, MASK_ONLY_INBOUND));
         return ctx;
     }
 
+    /**
+     * 获得下一个 Outbound 节点
+     * @param mask
+     * @return
+     */
     private AbstractChannelHandlerContext findContextOutbound(int mask) {
+        // 循环，向前获得一个 Outbound 节点
         AbstractChannelHandlerContext ctx = this;
         EventExecutor currentExecutor = executor();
         do {
+            // 循环，向前获得一个 Outbound 节点。
             ctx = ctx.prev;
         } while (skipContext(ctx, currentExecutor, mask, MASK_ONLY_OUTBOUND));
         return ctx;
@@ -964,6 +985,15 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
 
+    /**
+     * 设置 ChannelHandler 添加完成。完成后，状态有两种结果：
+     *
+     * REMOVE_COMPLETE
+     * ADD_COMPLETE
+     *
+     * 循环 + CAS 保证多线程下的安全变更 handlerState 属性。
+     * @return
+     */
     final boolean setAddComplete() {
         for (;;) {
             int oldState = handlerState;
@@ -979,7 +1009,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         }
     }
 
+    /**
+     *  设置 ChannelHandler 准备添加中。
+     */
     final void setAddPending() {
+        // 当且仅当 INIT 可修改为 ADD_PENDING 。理论来说，这是一个绝对会成功的操作，原因见英文注释。
         boolean updated = HANDLER_STATE_UPDATER.compareAndSet(this, INIT, ADD_PENDING);
         assert updated; // This should always be true as it MUST be called before setAddComplete() or setRemoved().
     }
@@ -1039,13 +1073,16 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
             if (lazy && executor instanceof AbstractEventExecutor) {
                 ((AbstractEventExecutor) executor).lazyExecute(runnable);
             } else {
+                // 提交 EventLoop 的线程中，进行执行任务
                 executor.execute(runnable);
             }
             return true;
         } catch (Throwable cause) {
             try {
+                // 发生异常，回调通知 promise 相关的异常
                 promise.setFailure(cause);
             } finally {
+                // 释放 msg 相关的资源
                 if (msg != null) {
                     ReferenceCountUtil.release(msg);
                 }
